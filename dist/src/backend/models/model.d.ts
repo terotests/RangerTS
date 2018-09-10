@@ -1,8 +1,13 @@
 export declare class SomeReturnValue {
     myValue: number;
+    response: string;
 }
 export declare class myTemplate<T> {
     myValue: T;
+}
+export declare class CreateDevice {
+    name: string;
+    description: string;
 }
 export declare class int {
 }

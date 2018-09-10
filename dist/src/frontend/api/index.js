@@ -51,6 +51,17 @@ var ClientInterface = /** @class */ (function () {
             });
         });
     };
+    // Service endpoint for allUsers
+    ClientInterface.prototype.allUsers = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, axios_1.default.get("/v1/allUsers/")];
+                    case 1: return [2 /*return*/, (_a.sent()).data];
+                }
+            });
+        });
+    };
     // Service endpoint for users
     ClientInterface.prototype.users = function (id) {
         return __awaiter(this, void 0, void 0, function () {
@@ -62,13 +73,15 @@ var ClientInterface = /** @class */ (function () {
             });
         });
     };
-    // Service endpoint for jee
-    ClientInterface.prototype.jee = function (y, ss, requestBody) {
+    // Service endpoint for setDeviceData
+    ClientInterface.prototype.setDeviceData = function (createNewDevice) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, axios_1.default.get("/v1/jee/" + y + "/" + ss + "/" + requestBody)];
-                    case 1: return [2 /*return*/, (_a.sent()).data];
+                    case 0: return [4 /*yield*/, axios_1.default.post("/v1/setDeviceData/", createNewDevice)];
+                    case 1: 
+                    // should be posted
+                    return [2 /*return*/, (_a.sent()).data];
                 }
             });
         });

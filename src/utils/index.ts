@@ -3,6 +3,15 @@ import { TypeChecker, SourceFile, Project, FunctionDeclaration, ArrowFunction, M
 
 // Interface method signatures
 
+export const getSwaggerType = function(name:string, is_array:boolean = false) : any {
+  if(is_array) return {
+    type : 'array',
+    items : {...getSwaggerType( name )}
+  }
+  if(name ==='string' || name === 'number') return { type:name };
+  return {'$ref' : '#/definitions/' + name}
+}
+
 export const isSimpleType = function(cType:any) : boolean {
   const tp = cType.compilerType
   if(tp.flags & ts.TypeFlags.Number) {

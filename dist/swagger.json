@@ -8,22 +8,44 @@
           {
             "name": "id",
             "in": "path",
-            "description": "",
+            "description": "here could be the documentation of the ID value",
             "required": true,
             "type": "string"
           }
         ],
-        "description": "no description",
+        "description": "List all devices in the system",
+        "summary": "List all devices in the system",
         "produces": [
           "application/json"
         ],
         "responses": {
           "200": {
-            "description": "...",
+            "description": "",
             "schema": {
               "type": "array",
               "items": {
                 "$ref": "#/definitions/Device"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/allUsers/": {
+      "get": {
+        "parameters": [],
+        "description": "",
+        "summary": "",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/TestUser"
               }
             }
           }
@@ -41,13 +63,14 @@
             "type": "string"
           }
         ],
-        "description": "no description",
+        "description": "",
+        "summary": "",
         "produces": [
           "application/json"
         ],
         "responses": {
           "200": {
-            "description": "...",
+            "description": "",
             "schema": {
               "type": "array",
               "items": {
@@ -58,43 +81,29 @@
         }
       }
     },
-    "/jee/{y}/{ss}/{requestBody}": {
-      "get": {
+    "/setDeviceData/": {
+      "post": {
         "parameters": [
           {
-            "name": "y",
-            "in": "path",
+            "name": "createNewDevice",
+            "in": "body",
             "description": "",
             "required": true,
-            "type": "number"
-          },
-          {
-            "name": "ss",
-            "in": "path",
-            "description": "",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "requestBody",
-            "in": "path",
-            "description": "",
-            "required": true,
-            "type": "string"
+            "schema": {
+              "$ref": "#/definitions/CreateDevice"
+            }
           }
         ],
-        "description": "no description",
+        "description": "Will set the device data",
+        "summary": "Will set the device data",
         "produces": [
           "application/json"
         ],
         "responses": {
           "200": {
-            "description": "...",
+            "description": "",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/SomeReturnValue"
-              }
+              "$ref": "#/definitions/SomeReturnValue"
             }
           }
         }
@@ -111,18 +120,16 @@
             "type": "number"
           }
         ],
-        "description": "no description",
+        "description": "",
+        "summary": "",
         "produces": [
           "application/json"
         ],
         "responses": {
           "200": {
-            "description": "...",
+            "description": "",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/SomeReturnValue"
-              }
+              "$ref": "#/definitions/SomeReturnValue"
             }
           }
         }
@@ -139,18 +146,16 @@
             "type": "number"
           }
         ],
-        "description": "no description",
+        "description": "",
+        "summary": "",
         "produces": [
           "application/json"
         ],
         "responses": {
           "200": {
-            "description": "...",
+            "description": "",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/any"
-              }
+              "$ref": "#/definitions/any"
             }
           }
         }
@@ -167,18 +172,16 @@
             "type": "string"
           }
         ],
-        "description": "no description",
+        "description": "",
+        "summary": "",
         "produces": [
           "application/json"
         ],
         "responses": {
           "200": {
-            "description": "...",
+            "description": "",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/string"
-              }
+              "type": "string"
             }
           }
         }
@@ -195,18 +198,16 @@
             "type": "string"
           }
         ],
-        "description": "no description",
+        "description": "",
+        "summary": "",
         "produces": [
           "application/json"
         ],
         "responses": {
           "200": {
-            "description": "...",
+            "description": "",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/string"
-              }
+              "type": "string"
             }
           }
         }
@@ -238,6 +239,20 @@
       "properties": {
         "myValue": {
           "type": "number"
+        },
+        "response": {
+          "type": "string"
+        }
+      }
+    },
+    "CreateDevice": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
         }
       }
     }

@@ -5,23 +5,27 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 var decorators_1 = require("./decorators");
 var model_1 = require("./models/model");
 var ServerInterface = /** @class */ (function () {
     function ServerInterface() {
     }
+    /**
+     * List all devices in the system
+     * @param {string} id here could be the documentation of the ID value
+     */
     ServerInterface.prototype.getDevices = function (id) {
         return [
             { id: 1, name: 'MacBook Pro' },
             { id: 2, name: 'iPhone' },
             { id: 3, name: 'Huawei' },
+        ];
+    };
+    ServerInterface.prototype.allUsers = function () {
+        return [
+            { name: 'First User' },
+            { name: 'Second User' },
         ];
     };
     ServerInterface.prototype.users = function (id) {
@@ -30,9 +34,13 @@ var ServerInterface = /** @class */ (function () {
             { name: 'Second User' },
         ];
     };
-    // Interace declaration with given parameters
-    ServerInterface.prototype.jee = function (x, y, ss, z, requestBody) {
+    /**
+     * Will set the device data
+     * @description ok, looks good
+     */
+    ServerInterface.prototype.setDeviceData = function (createNewDevice) {
         var value = new model_1.SomeReturnValue();
+        value.response = createNewDevice.description + ' OK ';
         return value;
     };
     ServerInterface.prototype.obj = function (v) {
@@ -64,14 +72,6 @@ var ServerInterface = /** @class */ (function () {
     ServerInterface.prototype.hello = function (name) {
         return "Hello " + name + "!!!";
     };
-    __decorate([
-        decorators_1.url('/my/'),
-        decorators_1.ErrorCode(404),
-        __param(4, decorators_1.Body),
-        __metadata("design:type", Function),
-        __metadata("design:paramtypes", [model_1.int, Number, String, model_1.myTemplate, String]),
-        __metadata("design:returntype", model_1.SomeReturnValue)
-    ], ServerInterface.prototype, "jee", null);
     ServerInterface = __decorate([
         decorators_1.Service('foobar')
     ], ServerInterface);

@@ -1,9 +1,15 @@
 
 export class SomeReturnValue {
   myValue = 100
+  response = ''
 }
 export class myTemplate<T> {
   myValue:T
+}
+
+export class CreateDevice {
+  name: string
+  description: string
 }
 
 export class int {

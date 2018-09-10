@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var SomeReturnValue = /** @class */ (function () {
     function SomeReturnValue() {
         this.myValue = 100;
+        this.response = '';
     }
     return SomeReturnValue;
 }());
@@ -13,6 +14,12 @@ var myTemplate = /** @class */ (function () {
     return myTemplate;
 }());
 exports.myTemplate = myTemplate;
+var CreateDevice = /** @class */ (function () {
+    function CreateDevice() {
+    }
+    return CreateDevice;
+}());
+exports.CreateDevice = CreateDevice;
 var int = /** @class */ (function () {
     function int() {
     }

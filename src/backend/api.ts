@@ -6,11 +6,15 @@ import {
   Body
 } from './decorators'
 
-import { SomeReturnValue, myTemplate, int, TestUser, Device, InvalidIDError } from './models/model'
+import { SomeReturnValue, myTemplate, int, TestUser, Device, InvalidIDError, CreateDevice } from './models/model'
 
 @Service('foobar')
 export class ServerInterface {
 
+  /**
+   * List all devices in the system
+   * @param {string} id here could be the documentation of the ID value
+   */
   getDevices(id:string) : Device[] {
     return [
       {id:1, name:'MacBook Pro'},
@@ -19,6 +23,13 @@ export class ServerInterface {
     ]
   }  
   
+  allUsers() : TestUser[] {
+    return [
+      {name:'First User'},
+      {name:'Second User'},
+    ]
+  }
+
   users(id:string) : TestUser[] {
     return [
       {name:'First User'},
@@ -26,15 +37,13 @@ export class ServerInterface {
     ]
   }
 
-  // Interace declaration with given parameters
-  @url('/my/')
-  @ErrorCode(404)
-  jee(x:int, 
-      y:number, 
-      ss:string, 
-      z:myTemplate<int>, 
-      @Body requestBody:string) : SomeReturnValue {
+  /**
+   * Will set the device data
+   * @description ok, looks good
+   */
+  setDeviceData( createNewDevice:CreateDevice) : SomeReturnValue {
     const value = new SomeReturnValue()
+    value.response = createNewDevice.description + ' OK '
     return value
   }
 

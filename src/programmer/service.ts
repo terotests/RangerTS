@@ -5,32 +5,8 @@ import * as utils from '../utils'
 const getTypeName = utils.getTypeName
 const isSimpleType = utils.isSimpleType
 const getTypePath = utils.getTypePath
+const getSwaggerType = utils.getSwaggerType
 
-// to generate swagger see
-// https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v2.0/json/petstore-minimal.json
-/*
-  "paths": {
-    "/pets": {
-      "get": {
-        "description": "Returns all pets from the system that the user has access to",
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of pets.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Pet"
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-*/
 export const initSwagger = (wr:R.CodeWriter) : R.CodeWriter => {
   const base = {  
     "swagger": "2.0",
@@ -68,6 +44,8 @@ export const CreateServiceBase = (wr:R.CodeWriter, port:number = 1337) : R.CodeW
   wr.out(
 `const express = require('express')
 const app = express()
+const bodyParser = require('body-parser')
+app.use( bodyParser.json() ); 
 `, true)
 
   wr.createTag('imports')
@@ -90,7 +68,7 @@ if (!module.parent) {
 export const CreateClientBase = (wr:R.CodeWriter, port:number = 1337) : R.CodeWriter => {
   wr.out(`
 import axios from 'axios';
-import {SomeReturnValue, TestUser, Device, InvalidIDError } from '../../backend/models/model'
+import {SomeReturnValue, TestUser, Device, InvalidIDError, CreateDevice } from '../../backend/models/model'
 `, true)
 
   wr.createTag('imports')
@@ -106,45 +84,47 @@ import {SomeReturnValue, TestUser, Device, InvalidIDError } from '../../backend/
   return fork;
 }
 
-
-/*
-  "paths": {
-    "/pets": {
-      "get": {
-        "description": "Returns all pets from the system that the user has access to",
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of pets.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Pet"
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-*/
 export const WriteEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
 
   const methodName = m.getName()
+  const is_post = m.getParameters().filter( p => !isSimpleType(p.getType()) ).length > 0
+  const httpMethod = is_post ? 'post' : 'get';
 
-  // VPN 
-  wr.out('', true);
+  let methodDoc = '';
+  const paramDocs = {}
+  m.getJsDocs().forEach( doc => {
+    if(doc.getComment()) {
+      methodDoc = doc.getComment()
+      console.log('COMMENT:', methodDoc)
+    }
+    doc.getTags().forEach( tag => {
+      if(tag.getName() === 'param') {
+        const cn:any = tag.compilerNode
+        paramDocs[cn.name.escapedText] = tag.getComment()
+      }      
+    })
+  })
+
   wr.out(`// Service endpoint for ${methodName}`, true);
-  wr.out(`app.get('/v1/${methodName}/${m.getParameters().map( param=> {
-    return ':' + param.getName();
-  }).join('/')}', function( req, res ) {`, true)
-  wr.indent(1)
-    const paramsList = m.getParameters().map( param => 'req.params.'+ param.getName() ).join(', ');
-    wr.out(`res.json( service${cl.getName()}.${methodName}(${paramsList}) );`, true)
-  wr.indent(-1)
-  wr.out(`})`, true)
+  switch(httpMethod) {
+    case 'get':
+      wr.out(`app.get('/v1/${methodName}/${m.getParameters().map( param=> {
+        return ':' + param.getName();
+      }).join('/')}', function( req, res ) {`, true)
+      wr.indent(1)
+        const getParamsList = m.getParameters().map( param => 'req.params.'+ param.getName() ).join(', ');
+        wr.out(`res.json( service${cl.getName()}.${methodName}(${getParamsList}) );`, true)
+      wr.indent(-1)
+      wr.out(`})`, true)
+      break
+    case 'post':
+      wr.out(`app.post('/v1/${methodName}/', function( req, res ) {`, true)
+      wr.indent(1)
+        wr.out(`res.json( service${cl.getName()}.${methodName}(req.body) );`, true)
+      wr.indent(-1)
+      wr.out(`})`, true)
+      break      
+  }
   
   const rArr = getTypePath( m.getReturnType() )
   const is_array = rArr[0] === 'Array'
@@ -152,120 +132,82 @@ export const WriteEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m
   const successResponse = {}
   const definitions = {}
 
-  p.getSourceFiles().forEach( s => {
-    s.getClasses().forEach( cl => {
-      if( cl.getName() === rType ) {
-        console.log('END returns class ', cl.getName(), is_array)
-
-        // create datatype
-        definitions[cl.getName()] = {
-          type : 'object',
-          properties : {
-            ...cl.getProperties().reduce( (prev, curr) => {
-              return { ...prev,
-                [curr.getName()] : {
-                  'type' : getTypeName( curr.getType() )
+  const createClassDef = (className:string) => {
+    p.getSourceFiles().forEach( s => {
+      s.getClasses().forEach( cl => {
+        if( cl.getName() === className ) {
+          definitions[cl.getName()] = {
+            type : 'object',
+            properties : {
+              ...cl.getProperties().reduce( (prev, curr) => {
+                return { ...prev,
+                  [curr.getName()] : {
+                    'type' : getTypeName( curr.getType() )
+                  }
                 }
-              }
-            },{})
-          }
-        }
-        if(is_array) {
-          successResponse['200'] = {
-            description : '',
-            schema : {
-              type: 'array',
-              items : '#/definitions/' + cl.getName()
+              },{})
             }
-          }
+          }              
         }
-      }
+      })
     })
-  })
+  }
 
-  // const clDecl = p.getCl
-
-  // Find the class declaration...
-
-/*
-    "NewPet": {
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "tag": {
-          "type": "string"
-        }
-      }
-    },
-*/  
-
+  successResponse['200'] = {
+    description : '',
+    schema : {
+      ...getSwaggerType( rType, is_array )
+    }
+  }  
+  createClassDef(rType) 
   // generate swagger docs of this endpoin, a simple version so far
   const state = wr.getState().swagger
-  const validParams = m.getParameters().filter( p => isSimpleType(p.getType()) )
-  const axiosGetVars = validParams.map( p => ('{' + p.getName() + '}' ) ).join('/')  
-  const paramList = 
-  /*
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "description": "ID of pet to fetch",
-        "required": true,
-        "type": "integer",
-        "format": "int64"
-      }
-    ],  
-  */
+  const validParams = m.getParameters(); // .filter( p => isSimpleType(p.getType()) )
+  const axiosGetVars = httpMethod === 'get' ? validParams.map( p => ('{' + p.getName() + '}' ) ).join('/') : ''
 
-  /*
-    "responses": {
-      "200": {
-        "description": "pet response",
-        "schema": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Pet"
+
+  state.paths['/' + methodName + '/' + axiosGetVars] = {
+    [httpMethod]: {
+      "parameters" : validParams.map( (p) => {
+        if(httpMethod==='post') {
+          const rArr = getTypePath( p.getType() )
+          const is_array = rArr[0] === 'Array'
+          const rType = rArr.pop()  
+          let tDef:any = {
+            schema : {
+              ...getSwaggerType( rType, is_array) 
+            }
+          }
+          if( isSimpleType( p.getType()) ) {
+            tDef = {
+              type : rType
+            }
+          } else {
+            createClassDef(rType)
+          }                  
+          return {
+            name : p.getName(),
+            in : "body",
+            description : paramDocs[p.getName()] || '',
+            required : true,
+            ...tDef
           }
         }
-      },
-      "default": {
-        "description": "unexpected error",
-        "schema": {
-          "$ref": "#/definitions/Error"
-        }
-      }
-    }  
-  */
-  state.paths['/' + methodName + '/' + axiosGetVars] = {
-    "get": {
-      "parameters" : validParams.map( (p) => {
         return {
           name : p.getName(),
           in : "path",
-          description : '',
+          description :  paramDocs[p.getName()] || '',
           required : true,
           type : getTypeName( p.getType() )
         }
       }),
-      "description": "no description",
+      "description": methodDoc,
+      "summary": methodDoc,
       "produces": [
         "application/json"
       ],
       "responses": {
-        "200": {
-          "description": "...",
-          "schema": {
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/"+rType
-            }
-          }
-        }
+        ...successResponse,
       }
     }
   }  
@@ -278,21 +220,36 @@ export const WriteClientEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclarat
 
   const methodName = m.getName()
   // only simple parameters
-  const validParams = m.getParameters().filter( p => isSimpleType(p.getType()) )
+  const validParams = m.getParameters();
+  const is_post = m.getParameters().filter( p => !isSimpleType(p.getType()) ).length > 0
+  const httpMethod = is_post ? 'post' : 'get';
   // method signature
   const signatureStr = validParams.map( p => {
     return p.getName() + `: ` + getTypeName( p.getType()) 
   }).join(', ')
+  const paramsStr = validParams.map( p => p.getName() ).join(', ')
 
   // setting the body / post varas is not as simple...
   const axiosGetVars = validParams.map( p => ('${' + p.getName() + '}' ) ).join('/') 
 
-  wr.out(`// Service endpoint for ${methodName}`, true);
-  wr.out(`async ${methodName}(${signatureStr}) : Promise<${utils.getMethodReturnTypeName(p.getTypeChecker(), m)}> {`, true)
-    wr.indent(1)
-    wr.out('return (await axios.get(`/v1/' + methodName + '/'+ axiosGetVars+ '`)).data;', true)
-    wr.indent(-1)
-  wr.out(`}`, true)
-
+  switch(httpMethod) {
+    case 'post':
+      wr.out(`// Service endpoint for ${methodName}`, true);
+      wr.out(`async ${methodName}(${signatureStr}) : Promise<${getTypeName(m.getReturnType())}> {`, true)
+        wr.indent(1)
+        if(is_post) wr.out('// should be posted', true)
+        wr.out('return (await axios.post(`/v1/' + methodName + '/`,'+paramsStr+')).data;', true)
+        wr.indent(-1)
+      wr.out(`}`, true) 
+      break; 
+    case 'get':
+    wr.out(`// Service endpoint for ${methodName}`, true);
+    wr.out(`async ${methodName}(${signatureStr}) : Promise<${getTypeName(m.getReturnType())}> {`, true)
+      wr.indent(1)
+      if(is_post) wr.out('// should be posted', true)
+      wr.out('return (await axios.get(`/v1/' + methodName + '/'+ axiosGetVars+ '`)).data;', true)
+      wr.indent(-1)
+    wr.out(`}`, true)  
+  }
   return wr;
 }

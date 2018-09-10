@@ -15,31 +15,7 @@ var utils = require("../utils");
 var getTypeName = utils.getTypeName;
 var isSimpleType = utils.isSimpleType;
 var getTypePath = utils.getTypePath;
-// to generate swagger see
-// https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v2.0/json/petstore-minimal.json
-/*
-  "paths": {
-    "/pets": {
-      "get": {
-        "description": "Returns all pets from the system that the user has access to",
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of pets.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Pet"
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-*/
+var getSwaggerType = utils.getSwaggerType;
 exports.initSwagger = function (wr) {
     var base = {
         "swagger": "2.0",
@@ -66,7 +42,7 @@ exports.initSwagger = function (wr) {
 exports.CreateServiceBase = function (wr, port) {
     if (port === void 0) { port = 1337; }
     // use express
-    wr.out("const express = require('express')\nconst app = express()\n", true);
+    wr.out("const express = require('express')\nconst app = express()\nconst bodyParser = require('body-parser')\napp.use( bodyParser.json() ); \n", true);
     wr.createTag('imports');
     wr.out('', true);
     wr.out('// generated routes for the app ', true);
@@ -77,7 +53,7 @@ exports.CreateServiceBase = function (wr, port) {
 };
 exports.CreateClientBase = function (wr, port) {
     if (port === void 0) { port = 1337; }
-    wr.out("\nimport axios from 'axios';\nimport {SomeReturnValue, TestUser, Device, InvalidIDError } from '../../backend/models/model'\n", true);
+    wr.out("\nimport axios from 'axios';\nimport {SomeReturnValue, TestUser, Device, InvalidIDError, CreateDevice } from '../../backend/models/model'\n", true);
     wr.createTag('imports');
     wr.out('', true);
     wr.out('// generated routes for the app ', true);
@@ -89,155 +65,112 @@ exports.CreateClientBase = function (wr, port) {
     wr.out('}', true);
     return fork;
 };
-/*
-  "paths": {
-    "/pets": {
-      "get": {
-        "description": "Returns all pets from the system that the user has access to",
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of pets.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Pet"
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-*/
 exports.WriteEndpoint = function (wr, p, cl, m) {
+    var _a;
     var methodName = m.getName();
-    // VPN 
-    wr.out('', true);
+    var is_post = m.getParameters().filter(function (p) { return !isSimpleType(p.getType()); }).length > 0;
+    var httpMethod = is_post ? 'post' : 'get';
+    var methodDoc = '';
+    var paramDocs = {};
+    m.getJsDocs().forEach(function (doc) {
+        if (doc.getComment()) {
+            methodDoc = doc.getComment();
+            console.log('COMMENT:', methodDoc);
+        }
+        doc.getTags().forEach(function (tag) {
+            if (tag.getName() === 'param') {
+                var cn = tag.compilerNode;
+                paramDocs[cn.name.escapedText] = tag.getComment();
+            }
+        });
+    });
     wr.out("// Service endpoint for " + methodName, true);
-    wr.out("app.get('/v1/" + methodName + "/" + m.getParameters().map(function (param) {
-        return ':' + param.getName();
-    }).join('/') + "', function( req, res ) {", true);
-    wr.indent(1);
-    var paramsList = m.getParameters().map(function (param) { return 'req.params.' + param.getName(); }).join(', ');
-    wr.out("res.json( service" + cl.getName() + "." + methodName + "(" + paramsList + ") );", true);
-    wr.indent(-1);
-    wr.out("})", true);
+    switch (httpMethod) {
+        case 'get':
+            wr.out("app.get('/v1/" + methodName + "/" + m.getParameters().map(function (param) {
+                return ':' + param.getName();
+            }).join('/') + "', function( req, res ) {", true);
+            wr.indent(1);
+            var getParamsList = m.getParameters().map(function (param) { return 'req.params.' + param.getName(); }).join(', ');
+            wr.out("res.json( service" + cl.getName() + "." + methodName + "(" + getParamsList + ") );", true);
+            wr.indent(-1);
+            wr.out("})", true);
+            break;
+        case 'post':
+            wr.out("app.post('/v1/" + methodName + "/', function( req, res ) {", true);
+            wr.indent(1);
+            wr.out("res.json( service" + cl.getName() + "." + methodName + "(req.body) );", true);
+            wr.indent(-1);
+            wr.out("})", true);
+            break;
+    }
     var rArr = getTypePath(m.getReturnType());
     var is_array = rArr[0] === 'Array';
     var rType = rArr.pop();
     var successResponse = {};
     var definitions = {};
-    p.getSourceFiles().forEach(function (s) {
-        s.getClasses().forEach(function (cl) {
-            if (cl.getName() === rType) {
-                console.log('END returns class ', cl.getName(), is_array);
-                // create datatype
-                definitions[cl.getName()] = {
-                    type: 'object',
-                    properties: __assign({}, cl.getProperties().reduce(function (prev, curr) {
-                        var _a;
-                        return __assign({}, prev, (_a = {}, _a[curr.getName()] = {
-                            'type': getTypeName(curr.getType())
-                        }, _a));
-                    }, {}))
-                };
-                if (is_array) {
-                    successResponse['200'] = {
-                        description: '',
-                        schema: {
-                            type: 'array',
-                            items: '#/definitions/' + cl.getName()
-                        }
+    var createClassDef = function (className) {
+        p.getSourceFiles().forEach(function (s) {
+            s.getClasses().forEach(function (cl) {
+                if (cl.getName() === className) {
+                    definitions[cl.getName()] = {
+                        type: 'object',
+                        properties: __assign({}, cl.getProperties().reduce(function (prev, curr) {
+                            var _a;
+                            return __assign({}, prev, (_a = {}, _a[curr.getName()] = {
+                                'type': getTypeName(curr.getType())
+                            }, _a));
+                        }, {}))
                     };
                 }
-            }
+            });
         });
-    });
-    // const clDecl = p.getCl
-    // Find the class declaration...
-    /*
-        "NewPet": {
-          "type": "object",
-          "required": [
-            "name"
-          ],
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "tag": {
-              "type": "string"
-            }
-          }
-        },
-    */
+    };
+    successResponse['200'] = {
+        description: '',
+        schema: __assign({}, getSwaggerType(rType, is_array))
+    };
+    createClassDef(rType);
     // generate swagger docs of this endpoin, a simple version so far
     var state = wr.getState().swagger;
-    var validParams = m.getParameters().filter(function (p) { return isSimpleType(p.getType()); });
-    var axiosGetVars = validParams.map(function (p) { return ('{' + p.getName() + '}'); }).join('/');
-    var paramList = 
-    /*
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "description": "ID of pet to fetch",
-          "required": true,
-          "type": "integer",
-          "format": "int64"
-        }
-      ],
-    */
-    /*
-      "responses": {
-        "200": {
-          "description": "pet response",
-          "schema": {
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/Pet"
-            }
-          }
-        },
-        "default": {
-          "description": "unexpected error",
-          "schema": {
-            "$ref": "#/definitions/Error"
-          }
-        }
-      }
-    */
-    state.paths['/' + methodName + '/' + axiosGetVars] = {
-        "get": {
+    var validParams = m.getParameters(); // .filter( p => isSimpleType(p.getType()) )
+    var axiosGetVars = httpMethod === 'get' ? validParams.map(function (p) { return ('{' + p.getName() + '}'); }).join('/') : '';
+    state.paths['/' + methodName + '/' + axiosGetVars] = (_a = {},
+        _a[httpMethod] = {
             "parameters": validParams.map(function (p) {
+                if (httpMethod === 'post') {
+                    var rArr_1 = getTypePath(p.getType());
+                    var is_array_1 = rArr_1[0] === 'Array';
+                    var rType_1 = rArr_1.pop();
+                    var tDef = {
+                        schema: __assign({}, getSwaggerType(rType_1, is_array_1))
+                    };
+                    if (isSimpleType(p.getType())) {
+                        tDef = {
+                            type: rType_1
+                        };
+                    }
+                    else {
+                        createClassDef(rType_1);
+                    }
+                    return __assign({ name: p.getName(), in: "body", description: paramDocs[p.getName()] || '', required: true }, tDef);
+                }
                 return {
                     name: p.getName(),
                     in: "path",
-                    description: '',
+                    description: paramDocs[p.getName()] || '',
                     required: true,
                     type: getTypeName(p.getType())
                 };
             }),
-            "description": "no description",
+            "description": methodDoc,
+            "summary": methodDoc,
             "produces": [
                 "application/json"
             ],
-            "responses": {
-                "200": {
-                    "description": "...",
-                    "schema": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/definitions/" + rType
-                        }
-                    }
-                }
-            }
-        }
-    };
+            "responses": __assign({}, successResponse)
+        },
+        _a);
     state.definitions = Object.assign(state.definitions, definitions);
     return wr;
 };
@@ -245,19 +178,37 @@ exports.WriteEndpoint = function (wr, p, cl, m) {
 exports.WriteClientEndpoint = function (wr, p, cl, m) {
     var methodName = m.getName();
     // only simple parameters
-    var validParams = m.getParameters().filter(function (p) { return isSimpleType(p.getType()); });
+    var validParams = m.getParameters();
+    var is_post = m.getParameters().filter(function (p) { return !isSimpleType(p.getType()); }).length > 0;
+    var httpMethod = is_post ? 'post' : 'get';
     // method signature
     var signatureStr = validParams.map(function (p) {
         return p.getName() + ": " + getTypeName(p.getType());
     }).join(', ');
+    var paramsStr = validParams.map(function (p) { return p.getName(); }).join(', ');
     // setting the body / post varas is not as simple...
     var axiosGetVars = validParams.map(function (p) { return ('${' + p.getName() + '}'); }).join('/');
-    wr.out("// Service endpoint for " + methodName, true);
-    wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + utils.getMethodReturnTypeName(p.getTypeChecker(), m) + "> {", true);
-    wr.indent(1);
-    wr.out('return (await axios.get(`/v1/' + methodName + '/' + axiosGetVars + '`)).data;', true);
-    wr.indent(-1);
-    wr.out("}", true);
+    switch (httpMethod) {
+        case 'post':
+            wr.out("// Service endpoint for " + methodName, true);
+            wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + getTypeName(m.getReturnType()) + "> {", true);
+            wr.indent(1);
+            if (is_post)
+                wr.out('// should be posted', true);
+            wr.out('return (await axios.post(`/v1/' + methodName + '/`,' + paramsStr + ')).data;', true);
+            wr.indent(-1);
+            wr.out("}", true);
+            break;
+        case 'get':
+            wr.out("// Service endpoint for " + methodName, true);
+            wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + getTypeName(m.getReturnType()) + "> {", true);
+            wr.indent(1);
+            if (is_post)
+                wr.out('// should be posted', true);
+            wr.out('return (await axios.get(`/v1/' + methodName + '/' + axiosGetVars + '`)).data;', true);
+            wr.indent(-1);
+            wr.out("}", true);
+    }
     return wr;
 };
 //# sourceMappingURL=service.js.map
