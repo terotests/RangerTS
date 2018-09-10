@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var utils = require("../utils");
 // write the service main file
 exports.CreateServiceBase = function (wr, port) {
     if (port === void 0) { port = 1337; }
     // use express
-    wr.out("\nvar express = require('express')\nvar app = express()\n", true);
+    wr.out("const express = require('express')\nconst app = express()\n", true);
     wr.createTag('imports');
     wr.out('', true);
     wr.out('// generated routes for the app ', true);
@@ -15,7 +16,7 @@ exports.CreateServiceBase = function (wr, port) {
 };
 exports.CreateClientBase = function (wr, port) {
     if (port === void 0) { port = 1337; }
-    wr.out("\nimport axios from 'axios';\n\n", true);
+    wr.out("\nimport axios from 'axios';\nimport {SomeReturnValue, TestUser, Device } from '../../backend/models/model'\n", true);
     wr.createTag('imports');
     wr.out('', true);
     wr.out('// generated routes for the app ', true);
@@ -42,7 +43,7 @@ exports.WriteEndpoint = function (wr, cl, m) {
     return wr;
 };
 // write axios client endpoint for method
-exports.WriteClientEndpoint = function (wr, cl, m) {
+exports.WriteClientEndpoint = function (wr, p, cl, m) {
     var methodName = m.getName();
     // get function valid parameters...
     var validParams = m.getParameters().filter(function (p) {
@@ -71,9 +72,9 @@ exports.WriteClientEndpoint = function (wr, cl, m) {
         return '${' + p.getName() + '}';
     }).join('/');
     wr.out("// Service endpoint for " + methodName, true);
-    wr.out("async " + methodName + "(" + signatureStr + ") : Promise<any> {", true);
+    wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + utils.getMethodReturnTypeName(p.getTypeChecker(), m) + "> {", true);
     wr.indent(1);
-    wr.out('return await axios.get(`/v1/' + methodName + '/' + axiosGetVars + '`);', true);
+    wr.out('return (await axios.get(`/v1/' + methodName + '/' + axiosGetVars + '`)).data;', true);
     wr.indent(-1);
     wr.out("}", true);
     return wr;

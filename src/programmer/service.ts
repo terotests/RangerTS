@@ -1,13 +1,14 @@
 import * as R from 'robowr'
-import { MethodDeclaration, ClassDeclaration } from 'ts-simple-ast'
+import { MethodDeclaration, ClassDeclaration, Project } from 'ts-simple-ast'
+import * as utils from '../utils'
 
 // write the service main file
 export const CreateServiceBase = (wr:R.CodeWriter, port:number = 1337) : R.CodeWriter => {
 
   // use express
-  wr.out(`
-var express = require('express')
-var app = express()
+  wr.out(
+`const express = require('express')
+const app = express()
 `, true)
 
   wr.createTag('imports')
@@ -30,7 +31,7 @@ if (!module.parent) {
 export const CreateClientBase = (wr:R.CodeWriter, port:number = 1337) : R.CodeWriter => {
   wr.out(`
 import axios from 'axios';
-
+import {SomeReturnValue, TestUser, Device } from '../../backend/models/model'
 `, true)
 
   wr.createTag('imports')
@@ -64,7 +65,7 @@ export const WriteEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:MethodDecl
 }
 
 // write axios client endpoint for method
-export const WriteClientEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
+export const WriteClientEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
 
   const methodName = m.getName()
 
@@ -98,9 +99,9 @@ export const WriteClientEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:Meth
   }).join('/')  
 
   wr.out(`// Service endpoint for ${methodName}`, true);
-  wr.out(`async ${methodName}(${signatureStr}) : Promise<any> {`, true)
+  wr.out(`async ${methodName}(${signatureStr}) : Promise<${utils.getMethodReturnTypeName(p.getTypeChecker(), m)}> {`, true)
     wr.indent(1)
-    wr.out('return await axios.get(`/v1/' + methodName + '/'+ axiosGetVars+ '`);', true)
+    wr.out('return (await axios.get(`/v1/' + methodName + '/'+ axiosGetVars+ '`)).data;', true)
     wr.indent(-1)
   wr.out(`}`, true)
 
