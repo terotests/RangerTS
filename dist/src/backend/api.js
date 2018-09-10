@@ -48,8 +48,21 @@ var ServerInterface = /** @class */ (function () {
         value.myValue = compilerInsertTest();
         return value;
     };
+    ServerInterface.prototype.test2 = function (id) {
+        if (id > 12) {
+            var err = new model_1.InvalidIDError();
+            err.message = "Invalid id " + id;
+            return err;
+        }
+        var value = new model_1.SomeReturnValue();
+        value.myValue = 12345;
+        return value;
+    };
     ServerInterface.prototype.HelloWorld = function (name) {
         return "Hello World " + name;
+    };
+    ServerInterface.prototype.hello = function (name) {
+        return "Hello " + name + "!!!";
     };
     __decorate([
         decorators_1.url('/my/'),

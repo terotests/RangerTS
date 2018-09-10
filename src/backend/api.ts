@@ -6,7 +6,7 @@ import {
   Body
 } from './decorators'
 
-import { SomeReturnValue, myTemplate, int, TestUser, Device } from './models/model'
+import { SomeReturnValue, myTemplate, int, TestUser, Device, InvalidIDError } from './models/model'
 
 @Service('foobar')
 export class ServerInterface {
@@ -25,7 +25,6 @@ export class ServerInterface {
       {name:'Second User'},
     ]
   }
-
 
   // Interace declaration with given parameters
   @url('/my/')
@@ -54,8 +53,23 @@ export class ServerInterface {
     return value
   }
 
+  test2(id:number) : SomeReturnValue | InvalidIDError {
+    if(id > 12) {
+      const err = new InvalidIDError()
+      err.message = `Invalid id ${id}`
+      return err
+    }
+    const value = new SomeReturnValue()
+    value.myValue = 12345
+    return value
+  }  
+
   HelloWorld(name:string) : string {
     return `Hello World ${name}`
   }
+
+  hello(name:string) : string {
+    return `Hello ${name}!!!`
+  }  
 }
 

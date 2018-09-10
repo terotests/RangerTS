@@ -84,12 +84,34 @@ var ClientInterface = /** @class */ (function () {
             });
         });
     };
+    // Service endpoint for test2
+    ClientInterface.prototype.test2 = function (id) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, axios_1.default.get("/v1/test2/" + id)];
+                    case 1: return [2 /*return*/, (_a.sent()).data];
+                }
+            });
+        });
+    };
     // Service endpoint for HelloWorld
     ClientInterface.prototype.HelloWorld = function (name) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, axios_1.default.get("/v1/HelloWorld/" + name)];
+                    case 1: return [2 /*return*/, (_a.sent()).data];
+                }
+            });
+        });
+    };
+    // Service endpoint for hello
+    ClientInterface.prototype.hello = function (name) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, axios_1.default.get("/v1/hello/" + name)];
                     case 1: return [2 /*return*/, (_a.sent()).data];
                 }
             });

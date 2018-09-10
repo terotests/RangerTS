@@ -19,3 +19,7 @@ export class Device {
   name: string
 }
 
+export class InvalidIDError {
+  message: string
+}
+

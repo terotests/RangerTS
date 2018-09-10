@@ -13,3 +13,6 @@ export declare class Device {
     id: number;
     name: string;
 }
+export declare class InvalidIDError {
+    message: string;
+}

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compile": "find ./dist/ -name \"*.d.ts\" -delete && tsc",
-    "test": "npm run compile && node dist/src/tssimplec src/testinput.ts"
+    "test": "npm run compile && node dist/src/tssimplec src/testinput.ts && cp src/swagger/api.json dist/swagger.json && node dist/src/backend/index"
   },
   "keywords": [],
   "author": "Tero Tolonen",
@@ -20,6 +20,7 @@
     "koa-route": "^3.2.0",
     "ranger-compiler": "^2.1.70",
     "robowr": "^1.0.5",
+    "swagger-ui-express": "^4.0.1",
     "ts-simple-ast": "^14.4.3",
     "typeorm": "^0.2.7",
     "typescript": "^3.0.3"

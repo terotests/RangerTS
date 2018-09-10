@@ -1,6 +1,6 @@
 
 import axios from 'axios';
-import {SomeReturnValue, TestUser, Device } from '../../backend/models/model'
+import {SomeReturnValue, TestUser, Device, InvalidIDError } from '../../backend/models/model'
 
 
 // generated routes for the app 
@@ -21,8 +21,16 @@ export class ClientInterface {
   async obj(v: number) : Promise<SomeReturnValue> {
     return (await axios.get(`/v1/obj/${v}`)).data;
   }
+  // Service endpoint for test2
+  async test2(id: number) : Promise<SomeReturnValue|InvalidIDError> {
+    return (await axios.get(`/v1/test2/${id}`)).data;
+  }
   // Service endpoint for HelloWorld
   async HelloWorld(name: string) : Promise<string> {
     return (await axios.get(`/v1/HelloWorld/${name}`)).data;
+  }
+  // Service endpoint for hello
+  async hello(name: string) : Promise<string> {
+    return (await axios.get(`/v1/hello/${name}`)).data;
   }
 }

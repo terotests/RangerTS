@@ -1,7 +1,8 @@
 import * as ts from 'typescript'
 import { TypeChecker, SourceFile, Project, FunctionDeclaration, ArrowFunction, MethodDeclaration } from "ts-simple-ast";
 
-export const getTypeName = function(tp:any) : string {
+export const getTypeName = function(cType:any) : string {
+  const tp = cType.compilerType
   if(tp.flags & ts.TypeFlags.Number) {
     return 'number'
   }            
@@ -9,7 +10,14 @@ export const getTypeName = function(tp:any) : string {
     return 'string'
   }            
   if(tp.symbol) {
-    return tp.symbol.escapedName + '';
+    let typeName = tp.symbol.escapedName + '';
+    if(cType.getTypeArguments().length > 0 ) {
+      typeName += '<' + cType.getTypeArguments().map( arg => {
+        // console.log(arg)
+        return getTypeName(arg)
+      }) + '>';  
+    }
+    return typeName
   }
   return 'any'  
 }
@@ -23,12 +31,16 @@ export const getMethodReturnTypeName = function(checker:TypeChecker, m:MethodDec
   if(tp.flags & ts.TypeFlags.String) {
     return 'string'
   }            
+  if(tp.flags & ts.TypeFlags.Union) {
+    console.log('-union type found')
+    return cType.getUnionTypes().map( t => getTypeName(t) ).join('|')
+  }            
   if(tp.symbol) {
     let typeName = tp.symbol.escapedName + '';
     if(cType.getTypeArguments().length > 0 ) {
       typeName += '<' + cType.getTypeArguments().map( arg => {
         // console.log(arg)
-        return getTypeName(arg.compilerType)
+        return getTypeName(arg)
       }) + '>';  
     }
     return typeName

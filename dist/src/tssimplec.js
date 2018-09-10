@@ -40,7 +40,7 @@ var R = require("robowr");
 var ProgrammerBase = require("./programmer/service");
 function create_project() {
     return __awaiter(this, void 0, void 0, function () {
-        var project, sourceFile, RFs, webclient, clientWriter, injectWriter, serviceFile;
+        var project, sourceFile, RFs, webclient, clientWriter, injectWriter, swagger, serviceFile;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -54,6 +54,8 @@ function create_project() {
                     webclient = RFs.getFile('/src/frontend/api/', 'index.ts').getWriter();
                     clientWriter = ProgrammerBase.CreateClientBase(webclient);
                     injectWriter = new R.CodeWriter();
+                    // initialize the Swagger to the code writer context
+                    ProgrammerBase.initSwagger(webclient);
                     // find service declarations and create endpoints...
                     sourceFile.getClasses().forEach(function (c) {
                         var is_service = false;
@@ -69,6 +71,8 @@ function create_project() {
                             }
                         });
                     });
+                    swagger = RFs.getFile('/src/swagger/', 'api.json').getWriter();
+                    swagger.raw(JSON.stringify(swagger.getState().swagger, null, 2));
                     serviceFile = project.getSourceFileOrThrow('src/backend/index.ts');
                     serviceFile.getFunction('automaticServices')
                         .setBodyText(function (writer) {

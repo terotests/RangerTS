@@ -31,4 +31,10 @@ var Device = /** @class */ (function () {
     return Device;
 }());
 exports.Device = Device;
+var InvalidIDError = /** @class */ (function () {
+    function InvalidIDError() {
+    }
+    return InvalidIDError;
+}());
+exports.InvalidIDError = InvalidIDError;
 //# sourceMappingURL=model.js.map

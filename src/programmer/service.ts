@@ -2,6 +2,58 @@ import * as R from 'robowr'
 import { MethodDeclaration, ClassDeclaration, Project } from 'ts-simple-ast'
 import * as utils from '../utils'
 
+// to generate swagger see
+// https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v2.0/json/petstore-minimal.json
+/*
+  "paths": {
+    "/pets": {
+      "get": {
+        "description": "Returns all pets from the system that the user has access to",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of pets.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+*/
+export const initSwagger = (wr:R.CodeWriter) : R.CodeWriter => {
+  const base = {  
+    "swagger": "2.0",
+    "basePath": "/v1/",
+    "paths" : {
+
+    },
+    "info": {
+      "version": "1.0.0",
+      "title": "Swagger Hiihaa",
+      "description": "A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification",
+      "termsOfService": "http://swagger.io/terms/",
+      "contact": {
+        "name": "Swagger API Team"
+      },
+      "license": {
+        "name": "MIT"
+      }
+    }  
+  } 
+  wr.setState( {
+    ...wr.getState(),
+    swagger : base 
+  })
+  return wr
+}
+
 // write the service main file
 export const CreateServiceBase = (wr:R.CodeWriter, port:number = 1337) : R.CodeWriter => {
 
@@ -31,7 +83,7 @@ if (!module.parent) {
 export const CreateClientBase = (wr:R.CodeWriter, port:number = 1337) : R.CodeWriter => {
   wr.out(`
 import axios from 'axios';
-import {SomeReturnValue, TestUser, Device } from '../../backend/models/model'
+import {SomeReturnValue, TestUser, Device, InvalidIDError } from '../../backend/models/model'
 `, true)
 
   wr.createTag('imports')
@@ -47,10 +99,35 @@ import {SomeReturnValue, TestUser, Device } from '../../backend/models/model'
   return fork;
 }
 
+
+/*
+  "paths": {
+    "/pets": {
+      "get": {
+        "description": "Returns all pets from the system that the user has access to",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of pets.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+*/
 export const WriteEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
 
   const methodName = m.getName()
 
+  // VPN 
   wr.out('', true);
   wr.out(`// Service endpoint for ${methodName}`, true);
   wr.out(`app.get('/v1/${methodName}/${m.getParameters().map( param=> {
@@ -61,6 +138,28 @@ export const WriteEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:MethodDecl
     wr.out(`res.json( service${cl.getName()}.${methodName}(${paramsList}) );`, true)
   wr.indent(-1)
   wr.out(`})`, true)
+
+  // generate swagger docs of this endpoin, a simple version so far
+  const state = wr.getState().swagger
+  state.paths['/' + methodName] = {
+    "get": {
+      "description": "no description",
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "...",
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        }
+      }
+    }
+  }  
   return wr;
 }
 

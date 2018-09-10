@@ -1,0 +1,151 @@
+{
+  "swagger": "2.0",
+  "basePath": "/v1/",
+  "paths": {
+    "/getAllDevices2": {
+      "get": {
+        "description": "no description",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "...",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "description": "no description",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "...",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jee": {
+      "get": {
+        "description": "no description",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "...",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/obj": {
+      "get": {
+        "description": "no description",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "...",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test2": {
+      "get": {
+        "description": "no description",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "...",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/HelloWorld": {
+      "get": {
+        "description": "no description",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "...",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/hello": {
+      "get": {
+        "description": "no description",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "...",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pet"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "info": {
+    "version": "1.0.0",
+    "title": "Swagger Hiihaa",
+    "description": "A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification",
+    "termsOfService": "http://swagger.io/terms/",
+    "contact": {
+      "name": "Swagger API Team"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  }
+}

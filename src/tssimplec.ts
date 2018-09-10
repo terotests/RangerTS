@@ -24,6 +24,9 @@ async function create_project() {
   // inject code into existing codebase, which allows both humans and
   // automation work together!!
   const injectWriter = new R.CodeWriter()
+
+  // initialize the Swagger to the code writer context
+  ProgrammerBase.initSwagger( webclient )
   
   // find service declarations and create endpoints...
   sourceFile.getClasses().forEach( c=>{
@@ -40,6 +43,10 @@ async function create_project() {
       }
     })
   })
+
+  // create swagger file
+  const swagger = RFs.getFile('/src/swagger/', 'api.json').getWriter()
+  swagger.raw( JSON.stringify( swagger.getState().swagger, null, 2 ) )
   
   // inject declaration to some function...
   const serviceFile = project.getSourceFileOrThrow('src/backend/index.ts');

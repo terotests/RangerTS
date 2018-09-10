@@ -1,20 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts = require("typescript");
-exports.getTypeName = function (tp) {
-    if (tp.flags & ts.TypeFlags.Number) {
-        return 'number';
-    }
-    if (tp.flags & ts.TypeFlags.String) {
-        return 'string';
-    }
-    if (tp.symbol) {
-        return tp.symbol.escapedName + '';
-    }
-    return 'any';
-};
-exports.getMethodReturnTypeName = function (checker, m) {
-    var cType = m.getReturnType();
+exports.getTypeName = function (cType) {
     var tp = cType.compilerType;
     if (tp.flags & ts.TypeFlags.Number) {
         return 'number';
@@ -27,7 +14,32 @@ exports.getMethodReturnTypeName = function (checker, m) {
         if (cType.getTypeArguments().length > 0) {
             typeName += '<' + cType.getTypeArguments().map(function (arg) {
                 // console.log(arg)
-                return exports.getTypeName(arg.compilerType);
+                return exports.getTypeName(arg);
+            }) + '>';
+        }
+        return typeName;
+    }
+    return 'any';
+};
+exports.getMethodReturnTypeName = function (checker, m) {
+    var cType = m.getReturnType();
+    var tp = cType.compilerType;
+    if (tp.flags & ts.TypeFlags.Number) {
+        return 'number';
+    }
+    if (tp.flags & ts.TypeFlags.String) {
+        return 'string';
+    }
+    if (tp.flags & ts.TypeFlags.Union) {
+        console.log('-union type found');
+        return cType.getUnionTypes().map(function (t) { return exports.getTypeName(t); }).join('|');
+    }
+    if (tp.symbol) {
+        var typeName = tp.symbol.escapedName + '';
+        if (cType.getTypeArguments().length > 0) {
+            typeName += '<' + cType.getTypeArguments().map(function (arg) {
+                // console.log(arg)
+                return exports.getTypeName(arg);
             }) + '>';
         }
         return typeName;
