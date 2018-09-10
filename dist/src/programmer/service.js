@@ -12,6 +12,9 @@ var __assign = (this && this.__assign) || function () {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var utils = require("../utils");
+var getTypeName = utils.getTypeName;
+var isSimpleType = utils.isSimpleType;
+var getTypePath = utils.getTypePath;
 // to generate swagger see
 // https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v2.0/json/petstore-minimal.json
 /*
@@ -42,6 +45,7 @@ exports.initSwagger = function (wr) {
         "swagger": "2.0",
         "basePath": "/v1/",
         "paths": {},
+        "definitions": {},
         "info": {
             "version": "1.0.0",
             "title": "Swagger Hiihaa",
@@ -108,7 +112,7 @@ exports.CreateClientBase = function (wr, port) {
     }
   },
 */
-exports.WriteEndpoint = function (wr, cl, m) {
+exports.WriteEndpoint = function (wr, p, cl, m) {
     var methodName = m.getName();
     // VPN 
     wr.out('', true);
@@ -121,10 +125,102 @@ exports.WriteEndpoint = function (wr, cl, m) {
     wr.out("res.json( service" + cl.getName() + "." + methodName + "(" + paramsList + ") );", true);
     wr.indent(-1);
     wr.out("})", true);
+    var rArr = getTypePath(m.getReturnType());
+    var is_array = rArr[0] === 'Array';
+    var rType = rArr.pop();
+    var successResponse = {};
+    var definitions = {};
+    p.getSourceFiles().forEach(function (s) {
+        s.getClasses().forEach(function (cl) {
+            if (cl.getName() === rType) {
+                console.log('END returns class ', cl.getName(), is_array);
+                // create datatype
+                definitions[cl.getName()] = {
+                    type: 'object',
+                    properties: __assign({}, cl.getProperties().reduce(function (prev, curr) {
+                        var _a;
+                        return __assign({}, prev, (_a = {}, _a[curr.getName()] = {
+                            'type': getTypeName(curr.getType())
+                        }, _a));
+                    }, {}))
+                };
+                if (is_array) {
+                    successResponse['200'] = {
+                        description: '',
+                        schema: {
+                            type: 'array',
+                            items: '#/definitions/' + cl.getName()
+                        }
+                    };
+                }
+            }
+        });
+    });
+    // const clDecl = p.getCl
+    // Find the class declaration...
+    /*
+        "NewPet": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            }
+          }
+        },
+    */
     // generate swagger docs of this endpoin, a simple version so far
     var state = wr.getState().swagger;
-    state.paths['/' + methodName] = {
+    var validParams = m.getParameters().filter(function (p) { return isSimpleType(p.getType()); });
+    var axiosGetVars = validParams.map(function (p) { return ('{' + p.getName() + '}'); }).join('/');
+    var paramList = 
+    /*
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "description": "ID of pet to fetch",
+          "required": true,
+          "type": "integer",
+          "format": "int64"
+        }
+      ],
+    */
+    /*
+      "responses": {
+        "200": {
+          "description": "pet response",
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "default": {
+          "description": "unexpected error",
+          "schema": {
+            "$ref": "#/definitions/Error"
+          }
+        }
+      }
+    */
+    state.paths['/' + methodName + '/' + axiosGetVars] = {
         "get": {
+            "parameters": validParams.map(function (p) {
+                return {
+                    name: p.getName(),
+                    in: "path",
+                    description: '',
+                    required: true,
+                    type: getTypeName(p.getType())
+                };
+            }),
             "description": "no description",
             "produces": [
                 "application/json"
@@ -135,44 +231,27 @@ exports.WriteEndpoint = function (wr, cl, m) {
                     "schema": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/definitions/Pet"
+                            "$ref": "#/definitions/" + rType
                         }
                     }
                 }
             }
         }
     };
+    state.definitions = Object.assign(state.definitions, definitions);
     return wr;
 };
 // write axios client endpoint for method
 exports.WriteClientEndpoint = function (wr, p, cl, m) {
     var methodName = m.getName();
-    // get function valid parameters...
-    var validParams = m.getParameters().filter(function (p) {
-        var t = p.getType();
-        if (t.compilerType.symbol) {
-            return false;
-        }
-        return true;
-    });
+    // only simple parameters
+    var validParams = m.getParameters().filter(function (p) { return isSimpleType(p.getType()); });
     // method signature
     var signatureStr = validParams.map(function (p) {
-        var t = p.getType();
-        var typename = t.getText();
-        if (t.compilerType.symbol) {
-            typename = t.compilerType.symbol.escapedName + '';
-        }
-        return p.getName() + ": " + typename;
+        return p.getName() + ": " + getTypeName(p.getType());
     }).join(', ');
     // setting the body / post varas is not as simple...
-    var axiosGetVars = validParams.map(function (p) {
-        var t = p.getType();
-        var typename = t.getText();
-        if (t.compilerType.symbol) {
-            typename = t.compilerType.symbol.escapedName + '';
-        }
-        return '${' + p.getName() + '}';
-    }).join('/');
+    var axiosGetVars = validParams.map(function (p) { return ('${' + p.getName() + '}'); }).join('/');
     wr.out("// Service endpoint for " + methodName, true);
     wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + utils.getMethodReturnTypeName(p.getTypeChecker(), m) + "> {", true);
     wr.indent(1);

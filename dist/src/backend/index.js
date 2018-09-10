@@ -10,9 +10,9 @@ var api_1 = require("./api");
 var serviceServerInterface = new api_1.ServerInterface();
 // these are written automatically
 function automaticServices(app) {
-    // Service endpoint for getAllDevices2
-    app.get('/v1/getAllDevices2/:id', function (req, res) {
-        res.json(serviceServerInterface.getAllDevices2(req.params.id));
+    // Service endpoint for getDevices
+    app.get('/v1/getDevices/:id', function (req, res) {
+        res.json(serviceServerInterface.getDevices(req.params.id));
     });
     // Service endpoint for users
     app.get('/v1/users/:id', function (req, res) {

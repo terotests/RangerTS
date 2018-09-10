@@ -1,6 +1,38 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts = require("typescript");
+// Interface method signatures
+exports.isSimpleType = function (cType) {
+    var tp = cType.compilerType;
+    if (tp.flags & ts.TypeFlags.Number) {
+        return true;
+    }
+    if (tp.flags & ts.TypeFlags.String) {
+        return true;
+    }
+    return false;
+};
+exports.getTypePath = function (cType, current) {
+    if (current === void 0) { current = []; }
+    var tp = cType.compilerType;
+    if (tp.flags & ts.TypeFlags.Number) {
+        return ['number'];
+    }
+    if (tp.flags & ts.TypeFlags.String) {
+        return ['string'];
+    }
+    if (tp.symbol) {
+        var res = [tp.symbol.escapedName];
+        var end_1 = [];
+        if (cType.getTypeArguments().length > 0) {
+            cType.getTypeArguments().forEach(function (arg) {
+                end_1 = end_1.concat(exports.getTypePath(arg));
+            });
+        }
+        return res.concat(end_1);
+    }
+    return ['any'];
+};
 exports.getTypeName = function (cType) {
     var tp = cType.compilerType;
     if (tp.flags & ts.TypeFlags.Number) {

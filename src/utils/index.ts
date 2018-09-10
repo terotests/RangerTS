@@ -1,6 +1,40 @@
 import * as ts from 'typescript'
 import { TypeChecker, SourceFile, Project, FunctionDeclaration, ArrowFunction, MethodDeclaration } from "ts-simple-ast";
 
+// Interface method signatures
+
+export const isSimpleType = function(cType:any) : boolean {
+  const tp = cType.compilerType
+  if(tp.flags & ts.TypeFlags.Number) {
+    return true
+  }            
+  if(tp.flags & ts.TypeFlags.String) {
+    return true
+  }            
+  return false
+}
+
+export const getTypePath = function(cType:any, current:string[] = []) : string[] {
+  const tp = cType.compilerType
+  if(tp.flags & ts.TypeFlags.Number) {
+    return ['number']
+  }            
+  if(tp.flags & ts.TypeFlags.String) {
+    return ['string']
+  }            
+  if(tp.symbol) {
+    const res = [tp.symbol.escapedName]
+    let end = []
+    if(cType.getTypeArguments().length > 0 ) {
+      cType.getTypeArguments().forEach( arg => {
+        end = [...end, ...getTypePath(arg)]
+      });
+    }
+    return [...res, ...end]
+  }
+  return ['any']  
+}
+
 export const getTypeName = function(cType:any) : string {
   const tp = cType.compilerType
   if(tp.flags & ts.TypeFlags.Number) {

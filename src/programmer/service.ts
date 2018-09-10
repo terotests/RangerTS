@@ -2,6 +2,10 @@ import * as R from 'robowr'
 import { MethodDeclaration, ClassDeclaration, Project } from 'ts-simple-ast'
 import * as utils from '../utils'
 
+const getTypeName = utils.getTypeName
+const isSimpleType = utils.isSimpleType
+const getTypePath = utils.getTypePath
+
 // to generate swagger see
 // https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v2.0/json/petstore-minimal.json
 /*
@@ -32,6 +36,9 @@ export const initSwagger = (wr:R.CodeWriter) : R.CodeWriter => {
     "swagger": "2.0",
     "basePath": "/v1/",
     "paths" : {
+
+    },
+    "definitions" : {
 
     },
     "info": {
@@ -123,7 +130,7 @@ import {SomeReturnValue, TestUser, Device, InvalidIDError } from '../../backend/
     }
   },
 */
-export const WriteEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
+export const WriteEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
 
   const methodName = m.getName()
 
@@ -138,11 +145,113 @@ export const WriteEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:MethodDecl
     wr.out(`res.json( service${cl.getName()}.${methodName}(${paramsList}) );`, true)
   wr.indent(-1)
   wr.out(`})`, true)
+  
+  const rArr = getTypePath( m.getReturnType() )
+  const is_array = rArr[0] === 'Array'
+  const rType = rArr.pop()  
+  const successResponse = {}
+  const definitions = {}
+
+  p.getSourceFiles().forEach( s => {
+    s.getClasses().forEach( cl => {
+      if( cl.getName() === rType ) {
+        console.log('END returns class ', cl.getName(), is_array)
+
+        // create datatype
+        definitions[cl.getName()] = {
+          type : 'object',
+          properties : {
+            ...cl.getProperties().reduce( (prev, curr) => {
+              return { ...prev,
+                [curr.getName()] : {
+                  'type' : getTypeName( curr.getType() )
+                }
+              }
+            },{})
+          }
+        }
+        if(is_array) {
+          successResponse['200'] = {
+            description : '',
+            schema : {
+              type: 'array',
+              items : '#/definitions/' + cl.getName()
+            }
+          }
+        }
+      }
+    })
+  })
+
+  // const clDecl = p.getCl
+
+  // Find the class declaration...
+
+/*
+    "NewPet": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      }
+    },
+*/  
 
   // generate swagger docs of this endpoin, a simple version so far
   const state = wr.getState().swagger
-  state.paths['/' + methodName] = {
+  const validParams = m.getParameters().filter( p => isSimpleType(p.getType()) )
+  const axiosGetVars = validParams.map( p => ('{' + p.getName() + '}' ) ).join('/')  
+  const paramList = 
+  /*
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "description": "ID of pet to fetch",
+        "required": true,
+        "type": "integer",
+        "format": "int64"
+      }
+    ],  
+  */
+
+  /*
+    "responses": {
+      "200": {
+        "description": "pet response",
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Pet"
+          }
+        }
+      },
+      "default": {
+        "description": "unexpected error",
+        "schema": {
+          "$ref": "#/definitions/Error"
+        }
+      }
+    }  
+  */
+  state.paths['/' + methodName + '/' + axiosGetVars] = {
     "get": {
+      "parameters" : validParams.map( (p) => {
+        return {
+          name : p.getName(),
+          in : "path",
+          description : '',
+          required : true,
+          type : getTypeName( p.getType() )
+        }
+      }),
       "description": "no description",
       "produces": [
         "application/json"
@@ -153,13 +262,14 @@ export const WriteEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:MethodDecl
           "schema": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/Pet"
+              "$ref": "#/definitions/"+rType
             }
           }
         }
       }
     }
   }  
+  state.definitions = Object.assign( state.definitions, definitions )
   return wr;
 }
 
@@ -167,35 +277,15 @@ export const WriteEndpoint = (wr:R.CodeWriter, cl:ClassDeclaration, m:MethodDecl
 export const WriteClientEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
 
   const methodName = m.getName()
-
-  // get function valid parameters...
-  const validParams = m.getParameters().filter( p => {
-    const t = p.getType()
-    if(t.compilerType.symbol) {
-      return false
-    }  
-    return true
-  });
-
+  // only simple parameters
+  const validParams = m.getParameters().filter( p => isSimpleType(p.getType()) )
   // method signature
   const signatureStr = validParams.map( p => {
-    const t = p.getType()
-    let typename = t.getText()
-    if(t.compilerType.symbol) {
-      typename = t.compilerType.symbol.escapedName + ''
-    }  
-    return p.getName() + `: ` + typename
+    return p.getName() + `: ` + getTypeName( p.getType()) 
   }).join(', ')
 
   // setting the body / post varas is not as simple...
-  const axiosGetVars = validParams.map( p => {
-    const t = p.getType()
-    let typename = t.getText()
-    if(t.compilerType.symbol) {
-      typename = t.compilerType.symbol.escapedName + ''
-    }  
-    return '${' + p.getName() + '}'
-  }).join('/')  
+  const axiosGetVars = validParams.map( p => ('${' + p.getName() + '}' ) ).join('/') 
 
   wr.out(`// Service endpoint for ${methodName}`, true);
   wr.out(`async ${methodName}(${signatureStr}) : Promise<${utils.getMethodReturnTypeName(p.getTypeChecker(), m)}> {`, true)

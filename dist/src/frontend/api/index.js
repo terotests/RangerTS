@@ -40,12 +40,12 @@ var axios_1 = require("axios");
 var ClientInterface = /** @class */ (function () {
     function ClientInterface() {
     }
-    // Service endpoint for getAllDevices2
-    ClientInterface.prototype.getAllDevices2 = function (id) {
+    // Service endpoint for getDevices
+    ClientInterface.prototype.getDevices = function (id) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, axios_1.default.get("/v1/getAllDevices2/" + id)];
+                    case 0: return [4 /*yield*/, axios_1.default.get("/v1/getDevices/" + id)];
                     case 1: return [2 /*return*/, (_a.sent()).data];
                 }
             });

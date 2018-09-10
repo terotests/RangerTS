@@ -17,7 +17,7 @@ var model_1 = require("./models/model");
 var ServerInterface = /** @class */ (function () {
     function ServerInterface() {
     }
-    ServerInterface.prototype.getAllDevices2 = function (id) {
+    ServerInterface.prototype.getDevices = function (id) {
         return [
             { id: 1, name: 'MacBook Pro' },
             { id: 2, name: 'iPhone' },

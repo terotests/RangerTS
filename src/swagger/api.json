@@ -2,8 +2,17 @@
   "swagger": "2.0",
   "basePath": "/v1/",
   "paths": {
-    "/getAllDevices2": {
+    "/getDevices/{id}": {
       "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string"
+          }
+        ],
         "description": "no description",
         "produces": [
           "application/json"
@@ -14,15 +23,24 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Pet"
+                "$ref": "#/definitions/Device"
               }
             }
           }
         }
       }
     },
-    "/users": {
+    "/users/{id}": {
       "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string"
+          }
+        ],
         "description": "no description",
         "produces": [
           "application/json"
@@ -33,15 +51,38 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Pet"
+                "$ref": "#/definitions/TestUser"
               }
             }
           }
         }
       }
     },
-    "/jee": {
+    "/jee/{y}/{ss}/{requestBody}": {
       "get": {
+        "parameters": [
+          {
+            "name": "y",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "number"
+          },
+          {
+            "name": "ss",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "requestBody",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string"
+          }
+        ],
         "description": "no description",
         "produces": [
           "application/json"
@@ -52,15 +93,24 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Pet"
+                "$ref": "#/definitions/SomeReturnValue"
               }
             }
           }
         }
       }
     },
-    "/obj": {
+    "/obj/{v}": {
       "get": {
+        "parameters": [
+          {
+            "name": "v",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "number"
+          }
+        ],
         "description": "no description",
         "produces": [
           "application/json"
@@ -71,15 +121,24 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Pet"
+                "$ref": "#/definitions/SomeReturnValue"
               }
             }
           }
         }
       }
     },
-    "/test2": {
+    "/test2/{id}": {
       "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "number"
+          }
+        ],
         "description": "no description",
         "produces": [
           "application/json"
@@ -90,15 +149,24 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Pet"
+                "$ref": "#/definitions/any"
               }
             }
           }
         }
       }
     },
-    "/HelloWorld": {
+    "/HelloWorld/{name}": {
       "get": {
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string"
+          }
+        ],
         "description": "no description",
         "produces": [
           "application/json"
@@ -109,15 +177,24 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Pet"
+                "$ref": "#/definitions/string"
               }
             }
           }
         }
       }
     },
-    "/hello": {
+    "/hello/{name}": {
       "get": {
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string"
+          }
+        ],
         "description": "no description",
         "produces": [
           "application/json"
@@ -128,10 +205,39 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Pet"
+                "$ref": "#/definitions/string"
               }
             }
           }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Device": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "TestUser": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "SomeReturnValue": {
+      "type": "object",
+      "properties": {
+        "myValue": {
+          "type": "number"
         }
       }
     }

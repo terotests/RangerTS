@@ -11,7 +11,7 @@ import { SomeReturnValue, myTemplate, int, TestUser, Device, InvalidIDError } fr
 @Service('foobar')
 export class ServerInterface {
 
-  getAllDevices2(id:string) : Device[] {
+  getDevices(id:string) : Device[] {
     return [
       {id:1, name:'MacBook Pro'},
       {id:2, name:'iPhone'},

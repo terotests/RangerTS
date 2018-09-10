@@ -5,9 +5,9 @@ import {SomeReturnValue, TestUser, Device, InvalidIDError } from '../../backend/
 
 // generated routes for the app 
 export class ClientInterface { 
-  // Service endpoint for getAllDevices2
-  async getAllDevices2(id: string) : Promise<Array<Device>> {
-    return (await axios.get(`/v1/getAllDevices2/${id}`)).data;
+  // Service endpoint for getDevices
+  async getDevices(id: string) : Promise<Array<Device>> {
+    return (await axios.get(`/v1/getDevices/${id}`)).data;
   }
   // Service endpoint for users
   async users(id: string) : Promise<Array<TestUser>> {

@@ -66,7 +66,7 @@ function create_project() {
                         c.getMethods().forEach(function (m) {
                             if (is_service) {
                                 // here we write the code using injection
-                                ProgrammerBase.WriteEndpoint(injectWriter, c, m);
+                                ProgrammerBase.WriteEndpoint(injectWriter, project, c, m);
                                 ProgrammerBase.WriteClientEndpoint(clientWriter, project, c, m);
                             }
                         });
