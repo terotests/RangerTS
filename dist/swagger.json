@@ -2,6 +2,41 @@
   "swagger": "2.0",
   "basePath": "/v1/",
   "paths": {
+    "/user/{id}": {
+      "put": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "set user to some value",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "user",
+            "in": "body",
+            "description": "",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TestUser"
+            }
+          }
+        ],
+        "description": "",
+        "summary": "",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/TestUser"
+            }
+          }
+        }
+      }
+    },
     "/getDevices/{id}": {
       "get": {
         "parameters": [
@@ -58,13 +93,13 @@
           {
             "name": "id",
             "in": "path",
-            "description": "",
+            "description": "of course the user id",
             "required": true,
             "type": "string"
           }
         ],
-        "description": "",
-        "summary": "",
+        "description": "Fetch all users",
+        "summary": "Fetch all users",
         "produces": [
           "application/json"
         ],
@@ -76,6 +111,34 @@
               "items": {
                 "$ref": "#/definitions/TestUser"
               }
+            }
+          }
+        }
+      }
+    },
+    "/createUser/": {
+      "post": {
+        "parameters": [
+          {
+            "name": "u",
+            "in": "body",
+            "description": "",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateUser"
+            }
+          }
+        ],
+        "description": "",
+        "summary": "",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "number"
             }
           }
         }
@@ -94,8 +157,8 @@
             }
           }
         ],
-        "description": "Will set the device data",
-        "summary": "Will set the device data",
+        "description": "ok, looks good",
+        "summary": "ok, looks good",
         "produces": [
           "application/json"
         ],
@@ -215,6 +278,14 @@
     }
   },
   "definitions": {
+    "TestUser": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
+    },
     "Device": {
       "type": "object",
       "properties": {
@@ -226,11 +297,17 @@
         }
       }
     },
-    "TestUser": {
+    "CreateUser": {
       "type": "object",
       "properties": {
         "name": {
           "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "age": {
+          "type": "number"
         }
       }
     },
@@ -259,8 +336,8 @@
   },
   "info": {
     "version": "1.0.0",
-    "title": "Swagger Hiihaa",
-    "description": "A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification",
+    "title": "JeeJee",
+    "description": "APIn kuvaus jne.",
     "termsOfService": "http://swagger.io/terms/",
     "contact": {
       "name": "Swagger API Team"

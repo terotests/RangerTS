@@ -6,11 +6,15 @@ const getTypeName = utils.getTypeName
 const isSimpleType = utils.isSimpleType
 const getTypePath = utils.getTypePath
 const getSwaggerType = utils.getSwaggerType
+const getMethodDoc = utils.getMethodDoc
 
 export const initSwagger = (wr:R.CodeWriter) : R.CodeWriter => {
+
+  const services = wr.getState().services
+  const service = services[ Object.keys( services ).pop() ]
   const base = {  
     "swagger": "2.0",
-    "basePath": "/v1/",
+    "basePath": service.endpoint || '/v1/', 
     "paths" : {
 
     },
@@ -19,8 +23,8 @@ export const initSwagger = (wr:R.CodeWriter) : R.CodeWriter => {
     },
     "info": {
       "version": "1.0.0",
-      "title": "Swagger Hiihaa",
-      "description": "A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification",
+      "title": service.title || '',
+      "description": service.description || '',      
       "termsOfService": "http://swagger.io/terms/",
       "contact": {
         "name": "Swagger API Team"
@@ -68,7 +72,13 @@ if (!module.parent) {
 export const CreateClientBase = (wr:R.CodeWriter, port:number = 1337) : R.CodeWriter => {
   wr.out(`
 import axios from 'axios';
-import {SomeReturnValue, TestUser, Device, InvalidIDError, CreateDevice } from '../../backend/models/model'
+import {
+  CreateUser,
+  SomeReturnValue, 
+  TestUser, 
+  Device, 
+  InvalidIDError, 
+  CreateDevice } from '../../backend/models/model'
 `, true)
 
   wr.createTag('imports')
@@ -84,62 +94,48 @@ import {SomeReturnValue, TestUser, Device, InvalidIDError, CreateDevice } from '
   return fork;
 }
 
-export const WriteEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
+export const WriteEndpoint = (wr:R.CodeWriter, project:Project, clName:ClassDeclaration, method:MethodDeclaration ) : R.CodeWriter => {
 
-  const methodName = m.getName()
-  const is_post = m.getParameters().filter( p => !isSimpleType(p.getType()) ).length > 0
-  const httpMethod = is_post ? 'post' : 'get';
+  let methodName = method.getName()
+  const getParams = method.getParameters().filter( param => isSimpleType(param.getType()) )
+  const postParams = method.getParameters().filter( param => !isSimpleType(param.getType()) )
+  const is_post = method.getParameters().filter( project => !isSimpleType(project.getType()) ).length > 0
+  let httpMethod = is_post ? 'post' : 'get';
+  const getParamStr = getParams.map( param=> {
+    return ':' + param.getName();
+  }).join('/')
 
-  let methodDoc = '';
-  const paramDocs = {}
-  m.getJsDocs().forEach( doc => {
-    if(doc.getComment()) {
-      methodDoc = doc.getComment()
-      console.log('COMMENT:', methodDoc)
-    }
-    doc.getTags().forEach( tag => {
-      if(tag.getName() === 'param') {
-        const cn:any = tag.compilerNode
-        paramDocs[cn.name.escapedText] = tag.getComment()
-      }      
-    })
-  })
-
+  const methodInfo = getMethodDoc(method)
+  const getMethodAlias = () : string => {
+    return methodInfo.params.alias || methodName
+  } 
+  const getHTTPMethod = () : string => {
+    return methodInfo.params.method || httpMethod
+  } 
   wr.out(`// Service endpoint for ${methodName}`, true);
-  switch(httpMethod) {
-    case 'get':
-      wr.out(`app.get('/v1/${methodName}/${m.getParameters().map( param=> {
-        return ':' + param.getName();
-      }).join('/')}', function( req, res ) {`, true)
-      wr.indent(1)
-        const getParamsList = m.getParameters().map( param => 'req.params.'+ param.getName() ).join(', ');
-        wr.out(`res.json( service${cl.getName()}.${methodName}(${getParamsList}) );`, true)
-      wr.indent(-1)
-      wr.out(`})`, true)
-      break
-    case 'post':
-      wr.out(`app.post('/v1/${methodName}/', function( req, res ) {`, true)
-      wr.indent(1)
-        wr.out(`res.json( service${cl.getName()}.${methodName}(req.body) );`, true)
-      wr.indent(-1)
-      wr.out(`})`, true)
-      break      
-  }
+  wr.out(`app.${getHTTPMethod()}('/v1/${getMethodAlias()}/${getParamStr}', function( req, res ) {`, true)
+  wr.indent(1)
+  const argParams = getParams.map( param => 'req.params.'+ param.getName() );
+  const postArgs = postParams.length > 0 ? ['req.body'] : []
+  const paramList = [...argParams, ...postArgs].join(',')
+  wr.out(`res.json( service${clName.getName()}.${methodName}(${paramList}) );`, true)
+  wr.indent(-1)
+  wr.out(`})`, true)
   
-  const rArr = getTypePath( m.getReturnType() )
+  const rArr = getTypePath( method.getReturnType() )
   const is_array = rArr[0] === 'Array'
   const rType = rArr.pop()  
   const successResponse = {}
   const definitions = {}
 
   const createClassDef = (className:string) => {
-    p.getSourceFiles().forEach( s => {
-      s.getClasses().forEach( cl => {
-        if( cl.getName() === className ) {
-          definitions[cl.getName()] = {
+    project.getSourceFiles().forEach( s => {
+      s.getClasses().forEach( clName => {
+        if( clName.getName() === className ) {
+          definitions[clName.getName()] = {
             type : 'object',
             properties : {
-              ...cl.getProperties().reduce( (prev, curr) => {
+              ...clName.getProperties().reduce( (prev, curr) => {
                 return { ...prev,
                   [curr.getName()] : {
                     'type' : getTypeName( curr.getType() )
@@ -162,15 +158,23 @@ export const WriteEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m
   createClassDef(rType) 
   // generate swagger docs of this endpoin, a simple version so far
   const state = wr.getState().swagger
-  const validParams = m.getParameters(); // .filter( p => isSimpleType(p.getType()) )
-  const axiosGetVars = httpMethod === 'get' ? validParams.map( p => ('{' + p.getName() + '}' ) ).join('/') : ''
+  const validParams = method.getParameters(); 
+  const axiosGetVars = getParams.map( param => ('{' + param.getName() + '}' ) ).join('/')
 
-
-  state.paths['/' + methodName + '/' + axiosGetVars] = {
-    [httpMethod]: {
-      "parameters" : validParams.map( (p) => {
-        if(httpMethod==='post') {
-          const rArr = getTypePath( p.getType() )
+  state.paths['/' + getMethodAlias() + '/' + axiosGetVars] = {
+    [getHTTPMethod()]: {
+      "parameters" : [
+        ...getParams.map( (param) => {
+          return {
+            name : param.getName(),
+            in : "path",
+            description :  methodInfo.params[param.getName()] || '',
+            required : true,
+            type : getTypeName( param.getType() )
+          }          
+        }),
+        ...postParams.map( (param) => {
+          const rArr = getTypePath( param.getType() )
           const is_array = rArr[0] === 'Array'
           const rType = rArr.pop()  
           let tDef:any = {
@@ -178,7 +182,7 @@ export const WriteEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m
               ...getSwaggerType( rType, is_array) 
             }
           }
-          if( isSimpleType( p.getType()) ) {
+          if( isSimpleType( param.getType()) ) {
             tDef = {
               type : rType
             }
@@ -186,23 +190,16 @@ export const WriteEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m
             createClassDef(rType)
           }                  
           return {
-            name : p.getName(),
+            name : param.getName(),
             in : "body",
-            description : paramDocs[p.getName()] || '',
+            description : methodInfo.params[param.getName()] || '',
             required : true,
             ...tDef
           }
-        }
-        return {
-          name : p.getName(),
-          in : "path",
-          description :  paramDocs[p.getName()] || '',
-          required : true,
-          type : getTypeName( p.getType() )
-        }
-      }),
-      "description": methodDoc,
-      "summary": methodDoc,
+        })
+      ],
+      "description": methodInfo.params.description || methodInfo.comment,
+      "summary": methodInfo.params.summary || methodInfo.params.description || methodInfo.comment,
       "produces": [
         "application/json"
       ],
@@ -216,40 +213,58 @@ export const WriteEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m
 }
 
 // write axios client endpoint for method
-export const WriteClientEndpoint = (wr:R.CodeWriter, p:Project, cl:ClassDeclaration, m:MethodDeclaration ) : R.CodeWriter => {
+export const WriteClientEndpoint = (wr:R.CodeWriter, project:Project, clName:ClassDeclaration, method:MethodDeclaration ) : R.CodeWriter => {
 
-  const methodName = m.getName()
+  let methodName = method.getName()
   // only simple parameters
-  const validParams = m.getParameters();
-  const is_post = m.getParameters().filter( p => !isSimpleType(p.getType()) ).length > 0
-  const httpMethod = is_post ? 'post' : 'get';
+  const validParams = method.getParameters();
+  const getParams = method.getParameters().filter( param => isSimpleType(param.getType()) )  
+  const postParams = method.getParameters().filter( param => !isSimpleType(param.getType()) )  
+  const is_post = method.getParameters().filter( project => !isSimpleType(project.getType()) ).length > 0
+  let httpMethod = is_post ? 'post' : 'get';
   // method signature
-  const signatureStr = validParams.map( p => {
-    return p.getName() + `: ` + getTypeName( p.getType()) 
+  const signatureStr = validParams.map( project => {
+    return project.getName() + `: ` + getTypeName( project.getType()) 
   }).join(', ')
-  const paramsStr = validParams.map( p => p.getName() ).join(', ')
+  const paramsStr = getParams.map( project => project.getName() ).join(', ')
+  const postParamsStr = postParams.map( project => project.getName() ).join(', ')
 
   // setting the body / post varas is not as simple...
-  const axiosGetVars = validParams.map( p => ('${' + p.getName() + '}' ) ).join('/') 
-
+  const axiosGetVars = getParams.map( param => ('${' + param.getName() + '}' ) ).join('/') 
+  const methodInfo = getMethodDoc(method)
+  if(methodInfo.params.method) {
+    httpMethod = methodInfo.params.method
+  }
+  if(methodInfo.params.alias) {
+    methodName = methodInfo.params.alias
+  }  
   switch(httpMethod) {
     case 'post':
       wr.out(`// Service endpoint for ${methodName}`, true);
-      wr.out(`async ${methodName}(${signatureStr}) : Promise<${getTypeName(m.getReturnType())}> {`, true)
+      wr.out(`async ${methodName}(${signatureStr}) : Promise<${getTypeName(method.getReturnType())}> {`, true)
         wr.indent(1)
         if(is_post) wr.out('// should be posted', true)
-        wr.out('return (await axios.post(`/v1/' + methodName + '/`,'+paramsStr+')).data;', true)
+        wr.out('return (await axios.post(`/v1/' + methodName + '/'+ axiosGetVars+ '`,'+postParamsStr+')).data;', true)
         wr.indent(-1)
       wr.out(`}`, true) 
       break; 
     case 'get':
-    wr.out(`// Service endpoint for ${methodName}`, true);
-    wr.out(`async ${methodName}(${signatureStr}) : Promise<${getTypeName(m.getReturnType())}> {`, true)
-      wr.indent(1)
-      if(is_post) wr.out('// should be posted', true)
-      wr.out('return (await axios.get(`/v1/' + methodName + '/'+ axiosGetVars+ '`)).data;', true)
-      wr.indent(-1)
-    wr.out(`}`, true)  
+      wr.out(`// Service endpoint for ${methodName}`, true);
+      wr.out(`async ${methodName}(${signatureStr}) : Promise<${getTypeName(method.getReturnType())}> {`, true)
+        wr.indent(1)
+        if(is_post) wr.out('// should be posted', true)
+        wr.out('return (await axios.get(`/v1/' + methodName + '/'+ axiosGetVars+ '`)).data;', true)
+        wr.indent(-1)
+      wr.out(`}`, true)  
+      break;
+    default:
+      wr.out(`// Service endpoint for ${methodName}`, true);
+      wr.out(`async ${methodName}(${signatureStr}) : Promise<${getTypeName(method.getReturnType())}> {`, true)
+        wr.indent(1)
+        if(is_post) wr.out('// should be posted', true)
+        wr.out('return (await axios.'+httpMethod+'(`/v1/' + methodName + '/'+ axiosGetVars+ '`)).data;', true)
+        wr.indent(-1)
+      wr.out(`}`, true) 
   }
   return wr;
 }

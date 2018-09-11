@@ -13,6 +13,33 @@ var __assign = (this && this.__assign) || function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts = require("typescript");
 // Interface method signatures
+var JSDocParams = /** @class */ (function () {
+    function JSDocParams() {
+        this.comment = '';
+        this.tags = {};
+        this.params = {};
+    }
+    return JSDocParams;
+}());
+exports.JSDocParams = JSDocParams;
+exports.getMethodDoc = function (method) {
+    var res = new JSDocParams;
+    method.getJsDocs().forEach(function (doc) {
+        if (doc.getComment()) {
+            res.comment = doc.getComment();
+        }
+        doc.getTags().forEach(function (tag) {
+            if (tag.getName() === 'param') {
+                var cn = tag.compilerNode;
+                res.params[cn.name.escapedText] = tag.getComment();
+            }
+            else {
+                res.params[tag.getName()] = tag.getComment();
+            }
+        });
+    });
+    return res;
+};
 exports.getSwaggerType = function (name, is_array) {
     if (is_array === void 0) { is_array = false; }
     if (is_array)

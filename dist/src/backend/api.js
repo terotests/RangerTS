@@ -1,16 +1,29 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var decorators_1 = require("./decorators");
 var model_1 = require("./models/model");
+/**
+ * APIn kuvaus jne.
+ *
+ * @title JeeJee
+ * @service
+ * @endpoint /v1/
+ *
+ */
 var ServerInterface = /** @class */ (function () {
     function ServerInterface() {
     }
+    /**
+     *
+     * @alias user
+     * @method put
+     * @param id set user to some value
+     * @param user
+     */
+    ServerInterface.prototype.putUser = function (id, user) {
+        var u = new model_1.TestUser();
+        u.name = user.name;
+        return u;
+    };
     /**
      * List all devices in the system
      * @param {string} id here could be the documentation of the ID value
@@ -28,11 +41,18 @@ var ServerInterface = /** @class */ (function () {
             { name: 'Second User' },
         ];
     };
+    /**
+     * Fetch all users
+     * @param id of course the user id
+     */
     ServerInterface.prototype.users = function (id) {
         return [
             { name: 'First User' },
             { name: 'Second User' },
         ];
+    };
+    ServerInterface.prototype.createUser = function (u) {
+        return 100;
     };
     /**
      * Will set the device data
@@ -72,9 +92,6 @@ var ServerInterface = /** @class */ (function () {
     ServerInterface.prototype.hello = function (name) {
         return "Hello " + name + "!!!";
     };
-    ServerInterface = __decorate([
-        decorators_1.Service('foobar')
-    ], ServerInterface);
     return ServerInterface;
 }());
 exports.ServerInterface = ServerInterface;

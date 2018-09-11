@@ -1,10 +1,21 @@
 
 import axios from 'axios';
-import {SomeReturnValue, TestUser, Device, InvalidIDError, CreateDevice } from '../../backend/models/model'
+import {
+CreateUser,
+SomeReturnValue,
+TestUser,
+Device,
+InvalidIDError,
+CreateDevice } from '../../backend/models/model'
 
 
 // generated routes for the app 
 export class ClientInterface { 
+  // Service endpoint for user
+  async user(id: string, user: TestUser) : Promise<TestUser> {
+    // should be posted
+    return (await axios.put(`/v1/user/${id}`)).data;
+  }
   // Service endpoint for getDevices
   async getDevices(id: string) : Promise<Array<Device>> {
     return (await axios.get(`/v1/getDevices/${id}`)).data;
@@ -16,6 +27,11 @@ export class ClientInterface {
   // Service endpoint for users
   async users(id: string) : Promise<Array<TestUser>> {
     return (await axios.get(`/v1/users/${id}`)).data;
+  }
+  // Service endpoint for createUser
+  async createUser(u: CreateUser) : Promise<number> {
+    // should be posted
+    return (await axios.post(`/v1/createUser/`,u)).data;
   }
   // Service endpoint for setDeviceData
   async setDeviceData(createNewDevice: CreateDevice) : Promise<SomeReturnValue> {

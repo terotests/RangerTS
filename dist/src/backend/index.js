@@ -12,6 +12,10 @@ var api_1 = require("./api");
 var serviceServerInterface = new api_1.ServerInterface();
 // these are written automatically
 function automaticServices(app) {
+    // Service endpoint for putUser
+    app.put('/v1/user/:id', function (req, res) {
+        res.json(serviceServerInterface.putUser(req.params.id, req.body));
+    });
     // Service endpoint for getDevices
     app.get('/v1/getDevices/:id', function (req, res) {
         res.json(serviceServerInterface.getDevices(req.params.id));
@@ -23,6 +27,10 @@ function automaticServices(app) {
     // Service endpoint for users
     app.get('/v1/users/:id', function (req, res) {
         res.json(serviceServerInterface.users(req.params.id));
+    });
+    // Service endpoint for createUser
+    app.post('/v1/createUser/', function (req, res) {
+        res.json(serviceServerInterface.createUser(req.body));
     });
     // Service endpoint for setDeviceData
     app.post('/v1/setDeviceData/', function (req, res) {

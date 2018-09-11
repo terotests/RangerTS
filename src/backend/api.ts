@@ -6,10 +6,30 @@ import {
   Body
 } from './decorators'
 
-import { SomeReturnValue, myTemplate, int, TestUser, Device, InvalidIDError, CreateDevice } from './models/model'
+import { SomeReturnValue, myTemplate, int, TestUser, Device, InvalidIDError, CreateDevice, CreateUser } from './models/model'
 
-@Service('foobar')
+/** 
+ * APIn kuvaus jne.
+ * 
+ * @title JeeJee
+ * @service  
+ * @endpoint /v1/
+ * 
+ */
 export class ServerInterface {
+
+  /**
+   * 
+   * @alias user
+   * @method put
+   * @param id set user to some value
+   * @param user 
+   */
+  putUser(id:string, user:TestUser) : TestUser {
+    const u = new TestUser()
+    u.name = user.name
+    return u
+  }
 
   /**
    * List all devices in the system
@@ -29,12 +49,19 @@ export class ServerInterface {
       {name:'Second User'},
     ]
   }
-
+  /**
+   * Fetch all users
+   * @param id of course the user id
+   */
   users(id:string) : TestUser[] {
     return [
       {name:'First User'},
       {name:'Second User'},
     ]
+  }
+
+  createUser( u: CreateUser) : number {
+    return 100
   }
 
   /**

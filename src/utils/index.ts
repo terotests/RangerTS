@@ -3,6 +3,30 @@ import { TypeChecker, SourceFile, Project, FunctionDeclaration, ArrowFunction, M
 
 // Interface method signatures
 
+export class JSDocParams {
+  comment : string = ''
+  tags : {[key:string] : string} = {}
+  params : {[key:string] : string} = {}
+}
+
+export const getMethodDoc = ( method:MethodDeclaration) : JSDocParams => {
+  const res = new JSDocParams
+  method.getJsDocs().forEach( doc => {
+    if(doc.getComment()) {
+      res.comment = doc.getComment()
+    }
+    doc.getTags().forEach( tag => {
+      if(tag.getName() === 'param') {
+        const cn:any = tag.compilerNode
+        res.params[cn.name.escapedText] = tag.getComment()
+      } else {
+        res.params[tag.getName()] = tag.getComment()
+      }     
+    })
+  })
+  return res
+}
+
 export const getSwaggerType = function(name:string, is_array:boolean = false) : any {
   if(is_array) return {
     type : 'array',

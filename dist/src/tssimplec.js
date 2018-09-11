@@ -40,7 +40,7 @@ var R = require("robowr");
 var ProgrammerBase = require("./programmer/service");
 function create_project() {
     return __awaiter(this, void 0, void 0, function () {
-        var project, sourceFile, RFs, webclient, clientWriter, injectWriter, swagger, serviceFile;
+        var project, sourceFile, RFs, webclient, clientWriter, injectWriter, services, swagger, serviceFile;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -54,22 +54,31 @@ function create_project() {
                     webclient = RFs.getFile('/src/frontend/api/', 'index.ts').getWriter();
                     clientWriter = ProgrammerBase.CreateClientBase(webclient);
                     injectWriter = new R.CodeWriter();
+                    services = webclient.getState().services = {};
+                    // mapeservice classes to the properties
+                    sourceFile.getClasses().forEach(function (c) {
+                        c.getJsDocs().forEach(function (doc) {
+                            var is_service = doc.getTags().filter(function (tag) { return tag.getName() === 'service'; }).length > 0;
+                            if (is_service) {
+                                webclient.getState().services[c.getName()] = {
+                                    description: doc.getComment()
+                                };
+                                doc.getTags().forEach(function (tag) {
+                                    webclient.getState().services[c.getName()][tag.getName()] = tag.getComment();
+                                });
+                            }
+                        });
+                    });
                     // initialize the Swagger to the code writer context
                     ProgrammerBase.initSwagger(webclient);
                     // find service declarations and create endpoints...
                     sourceFile.getClasses().forEach(function (c) {
-                        var is_service = false;
-                        var className = c.getName();
-                        c.getDecorators().forEach(function (dec) {
-                            is_service = (dec.getFullName() === 'Service');
-                        });
-                        c.getMethods().forEach(function (m) {
-                            if (is_service) {
-                                // here we write the code using injection
+                        if (services[c.getName()]) {
+                            c.getMethods().forEach(function (m) {
                                 ProgrammerBase.WriteEndpoint(injectWriter, project, c, m);
                                 ProgrammerBase.WriteClientEndpoint(clientWriter, project, c, m);
-                            }
-                        });
+                            });
+                        }
                     });
                     swagger = RFs.getFile('/src/swagger/', 'api.json').getWriter();
                     swagger.raw(JSON.stringify(swagger.getState().swagger, null, 2));

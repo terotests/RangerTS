@@ -25,23 +25,35 @@ async function create_project() {
   // automation work together!!
   const injectWriter = new R.CodeWriter()
 
+  // map services to state
+  const services = webclient.getState().services = {}
+
+  // mapeservice classes to the properties
+  sourceFile.getClasses().forEach( c=>{
+    c.getJsDocs().forEach( doc => {
+      const is_service = doc.getTags().filter( tag => tag.getName() === 'service' ).length > 0;
+      if(is_service) {
+        webclient.getState().services[c.getName()] = {
+          description : doc.getComment()
+        }
+        doc.getTags().forEach( tag => {
+          webclient.getState().services[c.getName()][tag.getName()] = tag.getComment()
+        })
+      }
+    })
+  })  
+
   // initialize the Swagger to the code writer context
   ProgrammerBase.initSwagger( webclient )
   
   // find service declarations and create endpoints...
   sourceFile.getClasses().forEach( c=>{
-    let is_service = false
-    const className = c.getName();
-    c.getDecorators().forEach( dec => {
-      is_service = (dec.getFullName() === 'Service'); 
-    })
-    c.getMethods().forEach( m => {
-      if(is_service) {
-        // here we write the code using injection
+    if( services[c.getName()]) {
+      c.getMethods().forEach( m => {
         ProgrammerBase.WriteEndpoint( injectWriter, project, c, m )
         ProgrammerBase.WriteClientEndpoint( clientWriter, project, c, m )
-      }
-    })
+      })  
+    }
   })
 
   // create swagger file

@@ -16,16 +16,19 @@ var getTypeName = utils.getTypeName;
 var isSimpleType = utils.isSimpleType;
 var getTypePath = utils.getTypePath;
 var getSwaggerType = utils.getSwaggerType;
+var getMethodDoc = utils.getMethodDoc;
 exports.initSwagger = function (wr) {
+    var services = wr.getState().services;
+    var service = services[Object.keys(services).pop()];
     var base = {
         "swagger": "2.0",
-        "basePath": "/v1/",
+        "basePath": service.endpoint || '/v1/',
         "paths": {},
         "definitions": {},
         "info": {
             "version": "1.0.0",
-            "title": "Swagger Hiihaa",
-            "description": "A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification",
+            "title": service.title || '',
+            "description": service.description || '',
             "termsOfService": "http://swagger.io/terms/",
             "contact": {
                 "name": "Swagger API Team"
@@ -53,7 +56,7 @@ exports.CreateServiceBase = function (wr, port) {
 };
 exports.CreateClientBase = function (wr, port) {
     if (port === void 0) { port = 1337; }
-    wr.out("\nimport axios from 'axios';\nimport {SomeReturnValue, TestUser, Device, InvalidIDError, CreateDevice } from '../../backend/models/model'\n", true);
+    wr.out("\nimport axios from 'axios';\nimport {\n  CreateUser,\n  SomeReturnValue, \n  TestUser, \n  Device, \n  InvalidIDError, \n  CreateDevice } from '../../backend/models/model'\n", true);
     wr.createTag('imports');
     wr.out('', true);
     wr.out('// generated routes for the app ', true);
@@ -65,57 +68,44 @@ exports.CreateClientBase = function (wr, port) {
     wr.out('}', true);
     return fork;
 };
-exports.WriteEndpoint = function (wr, p, cl, m) {
+exports.WriteEndpoint = function (wr, project, clName, method) {
     var _a;
-    var methodName = m.getName();
-    var is_post = m.getParameters().filter(function (p) { return !isSimpleType(p.getType()); }).length > 0;
+    var methodName = method.getName();
+    var getParams = method.getParameters().filter(function (param) { return isSimpleType(param.getType()); });
+    var postParams = method.getParameters().filter(function (param) { return !isSimpleType(param.getType()); });
+    var is_post = method.getParameters().filter(function (project) { return !isSimpleType(project.getType()); }).length > 0;
     var httpMethod = is_post ? 'post' : 'get';
-    var methodDoc = '';
-    var paramDocs = {};
-    m.getJsDocs().forEach(function (doc) {
-        if (doc.getComment()) {
-            methodDoc = doc.getComment();
-            console.log('COMMENT:', methodDoc);
-        }
-        doc.getTags().forEach(function (tag) {
-            if (tag.getName() === 'param') {
-                var cn = tag.compilerNode;
-                paramDocs[cn.name.escapedText] = tag.getComment();
-            }
-        });
-    });
+    var getParamStr = getParams.map(function (param) {
+        return ':' + param.getName();
+    }).join('/');
+    var methodInfo = getMethodDoc(method);
+    var getMethodAlias = function () {
+        return methodInfo.params.alias || methodName;
+    };
+    var getHTTPMethod = function () {
+        return methodInfo.params.method || httpMethod;
+    };
     wr.out("// Service endpoint for " + methodName, true);
-    switch (httpMethod) {
-        case 'get':
-            wr.out("app.get('/v1/" + methodName + "/" + m.getParameters().map(function (param) {
-                return ':' + param.getName();
-            }).join('/') + "', function( req, res ) {", true);
-            wr.indent(1);
-            var getParamsList = m.getParameters().map(function (param) { return 'req.params.' + param.getName(); }).join(', ');
-            wr.out("res.json( service" + cl.getName() + "." + methodName + "(" + getParamsList + ") );", true);
-            wr.indent(-1);
-            wr.out("})", true);
-            break;
-        case 'post':
-            wr.out("app.post('/v1/" + methodName + "/', function( req, res ) {", true);
-            wr.indent(1);
-            wr.out("res.json( service" + cl.getName() + "." + methodName + "(req.body) );", true);
-            wr.indent(-1);
-            wr.out("})", true);
-            break;
-    }
-    var rArr = getTypePath(m.getReturnType());
+    wr.out("app." + getHTTPMethod() + "('/v1/" + getMethodAlias() + "/" + getParamStr + "', function( req, res ) {", true);
+    wr.indent(1);
+    var argParams = getParams.map(function (param) { return 'req.params.' + param.getName(); });
+    var postArgs = postParams.length > 0 ? ['req.body'] : [];
+    var paramList = argParams.concat(postArgs).join(',');
+    wr.out("res.json( service" + clName.getName() + "." + methodName + "(" + paramList + ") );", true);
+    wr.indent(-1);
+    wr.out("})", true);
+    var rArr = getTypePath(method.getReturnType());
     var is_array = rArr[0] === 'Array';
     var rType = rArr.pop();
     var successResponse = {};
     var definitions = {};
     var createClassDef = function (className) {
-        p.getSourceFiles().forEach(function (s) {
-            s.getClasses().forEach(function (cl) {
-                if (cl.getName() === className) {
-                    definitions[cl.getName()] = {
+        project.getSourceFiles().forEach(function (s) {
+            s.getClasses().forEach(function (clName) {
+                if (clName.getName() === className) {
+                    definitions[clName.getName()] = {
                         type: 'object',
-                        properties: __assign({}, cl.getProperties().reduce(function (prev, curr) {
+                        properties: __assign({}, clName.getProperties().reduce(function (prev, curr) {
                             var _a;
                             return __assign({}, prev, (_a = {}, _a[curr.getName()] = {
                                 'type': getTypeName(curr.getType())
@@ -133,38 +123,37 @@ exports.WriteEndpoint = function (wr, p, cl, m) {
     createClassDef(rType);
     // generate swagger docs of this endpoin, a simple version so far
     var state = wr.getState().swagger;
-    var validParams = m.getParameters(); // .filter( p => isSimpleType(p.getType()) )
-    var axiosGetVars = httpMethod === 'get' ? validParams.map(function (p) { return ('{' + p.getName() + '}'); }).join('/') : '';
-    state.paths['/' + methodName + '/' + axiosGetVars] = (_a = {},
-        _a[httpMethod] = {
-            "parameters": validParams.map(function (p) {
-                if (httpMethod === 'post') {
-                    var rArr_1 = getTypePath(p.getType());
-                    var is_array_1 = rArr_1[0] === 'Array';
-                    var rType_1 = rArr_1.pop();
-                    var tDef = {
-                        schema: __assign({}, getSwaggerType(rType_1, is_array_1))
-                    };
-                    if (isSimpleType(p.getType())) {
-                        tDef = {
-                            type: rType_1
-                        };
-                    }
-                    else {
-                        createClassDef(rType_1);
-                    }
-                    return __assign({ name: p.getName(), in: "body", description: paramDocs[p.getName()] || '', required: true }, tDef);
-                }
+    var validParams = method.getParameters();
+    var axiosGetVars = getParams.map(function (param) { return ('{' + param.getName() + '}'); }).join('/');
+    state.paths['/' + getMethodAlias() + '/' + axiosGetVars] = (_a = {},
+        _a[getHTTPMethod()] = {
+            "parameters": getParams.map(function (param) {
                 return {
-                    name: p.getName(),
+                    name: param.getName(),
                     in: "path",
-                    description: paramDocs[p.getName()] || '',
+                    description: methodInfo.params[param.getName()] || '',
                     required: true,
-                    type: getTypeName(p.getType())
+                    type: getTypeName(param.getType())
                 };
-            }),
-            "description": methodDoc,
-            "summary": methodDoc,
+            }).concat(postParams.map(function (param) {
+                var rArr = getTypePath(param.getType());
+                var is_array = rArr[0] === 'Array';
+                var rType = rArr.pop();
+                var tDef = {
+                    schema: __assign({}, getSwaggerType(rType, is_array))
+                };
+                if (isSimpleType(param.getType())) {
+                    tDef = {
+                        type: rType
+                    };
+                }
+                else {
+                    createClassDef(rType);
+                }
+                return __assign({ name: param.getName(), in: "body", description: methodInfo.params[param.getName()] || '', required: true }, tDef);
+            })),
+            "description": methodInfo.params.description || methodInfo.comment,
+            "summary": methodInfo.params.summary || methodInfo.params.description || methodInfo.comment,
             "produces": [
                 "application/json"
             ],
@@ -175,37 +164,57 @@ exports.WriteEndpoint = function (wr, p, cl, m) {
     return wr;
 };
 // write axios client endpoint for method
-exports.WriteClientEndpoint = function (wr, p, cl, m) {
-    var methodName = m.getName();
+exports.WriteClientEndpoint = function (wr, project, clName, method) {
+    var methodName = method.getName();
     // only simple parameters
-    var validParams = m.getParameters();
-    var is_post = m.getParameters().filter(function (p) { return !isSimpleType(p.getType()); }).length > 0;
+    var validParams = method.getParameters();
+    var getParams = method.getParameters().filter(function (param) { return isSimpleType(param.getType()); });
+    var postParams = method.getParameters().filter(function (param) { return !isSimpleType(param.getType()); });
+    var is_post = method.getParameters().filter(function (project) { return !isSimpleType(project.getType()); }).length > 0;
     var httpMethod = is_post ? 'post' : 'get';
     // method signature
-    var signatureStr = validParams.map(function (p) {
-        return p.getName() + ": " + getTypeName(p.getType());
+    var signatureStr = validParams.map(function (project) {
+        return project.getName() + ": " + getTypeName(project.getType());
     }).join(', ');
-    var paramsStr = validParams.map(function (p) { return p.getName(); }).join(', ');
+    var paramsStr = getParams.map(function (project) { return project.getName(); }).join(', ');
+    var postParamsStr = postParams.map(function (project) { return project.getName(); }).join(', ');
     // setting the body / post varas is not as simple...
-    var axiosGetVars = validParams.map(function (p) { return ('${' + p.getName() + '}'); }).join('/');
+    var axiosGetVars = getParams.map(function (param) { return ('${' + param.getName() + '}'); }).join('/');
+    var methodInfo = getMethodDoc(method);
+    if (methodInfo.params.method) {
+        httpMethod = methodInfo.params.method;
+    }
+    if (methodInfo.params.alias) {
+        methodName = methodInfo.params.alias;
+    }
     switch (httpMethod) {
         case 'post':
             wr.out("// Service endpoint for " + methodName, true);
-            wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + getTypeName(m.getReturnType()) + "> {", true);
+            wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + getTypeName(method.getReturnType()) + "> {", true);
             wr.indent(1);
             if (is_post)
                 wr.out('// should be posted', true);
-            wr.out('return (await axios.post(`/v1/' + methodName + '/`,' + paramsStr + ')).data;', true);
+            wr.out('return (await axios.post(`/v1/' + methodName + '/' + axiosGetVars + '`,' + postParamsStr + ')).data;', true);
             wr.indent(-1);
             wr.out("}", true);
             break;
         case 'get':
             wr.out("// Service endpoint for " + methodName, true);
-            wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + getTypeName(m.getReturnType()) + "> {", true);
+            wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + getTypeName(method.getReturnType()) + "> {", true);
             wr.indent(1);
             if (is_post)
                 wr.out('// should be posted', true);
             wr.out('return (await axios.get(`/v1/' + methodName + '/' + axiosGetVars + '`)).data;', true);
+            wr.indent(-1);
+            wr.out("}", true);
+            break;
+        default:
+            wr.out("// Service endpoint for " + methodName, true);
+            wr.out("async " + methodName + "(" + signatureStr + ") : Promise<" + getTypeName(method.getReturnType()) + "> {", true);
+            wr.indent(1);
+            if (is_post)
+                wr.out('// should be posted', true);
+            wr.out('return (await axios.' + httpMethod + '(`/v1/' + methodName + '/' + axiosGetVars + '`)).data;', true);
             wr.indent(-1);
             wr.out("}", true);
     }

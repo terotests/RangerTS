@@ -9,6 +9,11 @@ export declare class CreateDevice {
     name: string;
     description: string;
 }
+export declare class CreateUser {
+    name: string;
+    address: string;
+    age: number;
+}
 export declare class int {
 }
 export declare class TestUser {

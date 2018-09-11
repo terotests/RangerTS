@@ -20,6 +20,12 @@ var CreateDevice = /** @class */ (function () {
     return CreateDevice;
 }());
 exports.CreateDevice = CreateDevice;
+var CreateUser = /** @class */ (function () {
+    function CreateUser() {
+    }
+    return CreateUser;
+}());
+exports.CreateUser = CreateUser;
 var int = /** @class */ (function () {
     function int() {
     }

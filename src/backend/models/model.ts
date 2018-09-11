@@ -12,6 +12,12 @@ export class CreateDevice {
   description: string
 }
 
+export class CreateUser {
+  name: string
+  address: string
+  age:number
+}
+
 export class int {
 
 }
